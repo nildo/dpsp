@@ -41,7 +41,13 @@ def duplicate_positions(pos):
         pos2[p + "2"] = (v[0] + dist, v[1] - dist)
     return pos2
 
-def draw_graph(G, pos, filename=None, paths=None):
+def path_to_edge_list(path):
+    edges = []
+    for i in range(len(path)-1):
+        edges.append((path[i], path[i+1]))
+    return edges
+
+def draw_graph(G, pos, filename=None, paths=None, tree=None):
     nx.draw_networkx_nodes(G, pos, node_size=500, node_color="w")
     nx.draw_networkx_labels(G, pos)
     nx.draw_networkx_edges(G, pos, alpha=0.2, width=1)
@@ -50,11 +56,13 @@ def draw_graph(G, pos, filename=None, paths=None):
     if paths:
         colors = ["r", "b", "g"]
         for i, path in enumerate(paths):
-            edges = []
-            for i in range(len(path)-1):
-                edges.append((path[i], path[i+1]))
+            edges = path_to_edge_list(path)
             color = colors[i % len(colors)]
             nx.draw_networkx_edges(G, pos, edgelist=edges, edge_color=color, width=2)
+    if tree:
+        for dest, path in tree.iteritems():
+            edges = path_to_edge_list(path)
+            nx.draw_networkx_edges(G, pos, edgelist=edges, edge_color="b", width=2)
     plt.axis('equal')
     if filename:
         plt.savefig(filename, format="PNG")
@@ -91,6 +99,23 @@ def complement_path(path):
         c_path.append(c_vertex)
     return c_path
 
+def create_residual_graph(G, distances, tree):
+    for u, v, d in G.edges(data=True):
+        d["weight"] = d["weight"] - distances[v] + distances[u]
+    fwd_path = tree["t1"]
+    rev_path = fwd_path[::-1]
+    fwd_edges = path_to_edge_list(fwd_path)
+    rev_edges = path_to_edge_list(rev_path)
+    G.remove_edges_from(fwd_edges)
+    for u, v in rev_edges:
+        G[u][v]["weight"] = 0
+    fwd_path = complement_path(tree["t1"])
+    rev_path = fwd_path[::-1]
+    fwd_edges = path_to_edge_list(fwd_path)
+    rev_edges = path_to_edge_list(rev_path)
+    G.remove_edges_from(fwd_edges)
+    for u, v in rev_edges:
+        G[u][v]["weight"] = 0
 
 def main():
     parser = argparse.ArgumentParser()
@@ -116,34 +141,46 @@ def main():
     G_dir = convert_to_digraph(G_dup)
     draw_graph(G_dir, pos2, "graph03.png")
 
-    sp1 = nx.dijkstra_path(G_dir, "s1", "t1")
-    sp1_len = nx.dijkstra_path_length(G_dir, "s1", "t1")
+    distances, tree = nx.single_source_dijkstra(G_dir, "s1")
+    draw_graph(G_dir, pos2, "graph04.png", tree=tree)
 
-    sp2 = nx.dijkstra_path(G_dir, "s1", "t2")
-    sp2_len = nx.dijkstra_path_length(G_dir, "s1", "t2")
+    create_residual_graph(G_dir, distances, tree)
 
-    draw_graph(G_dir, pos2, "graph04.png", [sp1, sp2])
+    draw_graph(G_dir, pos2, "graph05.png")
 
-    if sp1_len <= sp2_len:
-        sp = sp1
-        dest = "t2"
-    else:
-        sp = sp2
-        dest = "t1"
-    csp = complement_path(sp)
+    path = nx.dijkstra_path(G_dir, "s2", "t2")
 
-    draw_graph(G_dir, pos2, "graph05.png", [sp, csp])
+    draw_graph(G_dir, pos2, "graph06.png", [path])
 
-    G_mod = modify_graph(G_dir, [sp, csp])
-    sp = sp[::-1]
-    csp = csp[::-1]
 
-    draw_graph(G_mod, pos2, "graph06.png", [sp])
-
-    sp2 = nx.dijkstra_path(G_mod, "s2", dest)
-    print sp2
-
-    draw_graph(G_mod, pos2, "graph07.png", [sp2])
+    # sp1 = nx.dijkstra_path(G_dir, "s1", "t1")
+    # sp1_len = nx.dijkstra_path_length(G_dir, "s1", "t1")
+    #
+    # sp2 = nx.dijkstra_path(G_dir, "s1", "t2")
+    # sp2_len = nx.dijkstra_path_length(G_dir, "s1", "t2")
+    #
+    # draw_graph(G_dir, pos2, "graph04.png", [sp1, sp2])
+    #
+    # if sp1_len <= sp2_len:
+    #     sp = sp1
+    #     dest = "t2"
+    # else:
+    #     sp = sp2
+    #     dest = "t1"
+    # csp = complement_path(sp)
+    #
+    # draw_graph(G_dir, pos2, "graph05.png", [sp, csp])
+    #
+    # G_mod = modify_graph(G_dir, [sp, csp])
+    # sp = sp[::-1]
+    # csp = csp[::-1]
+    #
+    # draw_graph(G_mod, pos2, "graph06.png", [sp])
+    #
+    # sp2 = nx.dijkstra_path(G_mod, "s2", dest)
+    # print sp2
+    #
+    # draw_graph(G_mod, pos2, "graph07.png", [sp2])
 
 
 if __name__ == "__main__":
