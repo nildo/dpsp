@@ -4,6 +4,20 @@ from collections import deque
 
 ofdp_image_number = 1
 
+def ofdp_get_path(G, s, t, index):
+    path = [s]
+    current_node = G.node[s]["next"][index]
+    while current_node != t:
+        path.append(current_node)
+        current_node = G.node[current_node]["next"][0]
+    path.append(t)
+    return path
+
+def ofdp_parity(G):
+    path_edges = list((u,v) for u,v in G.edges_iter()
+                    if v in G.node[u]["next"] or u in G.node[v]["next"])
+    return len(path_edges)
+
 def ofdp_draw_graph(G, pos, filename=None, paths=False, current=None):
     global ofdp_image_number
     free_nodes = list(n for n,d in G.nodes_iter(data=True) if d["type"] == "free")
@@ -162,6 +176,7 @@ def ofdp(G, s, t, k, draw=False, pos=None, debug=False):
                 print "Augmenting path not found"
                 print "Could not find", k, "paths"
                 print "Found only", i, "paths"
+                return False
             break
         ofdp_tracing_sap(G, s, t, draw=True, pos=pos, debug=debug)
         if draw:
@@ -171,3 +186,4 @@ def ofdp(G, s, t, k, draw=False, pos=None, debug=False):
                 print v, d
         reset()
         i += 1
+    return True

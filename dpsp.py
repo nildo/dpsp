@@ -48,6 +48,7 @@ def dpsp_draw_graph(G, pos, filename=None, paths=False, current=None, parity=Non
     nx.draw_networkx_edges(G, pos, edgelist=ohb_edges_1, edge_color="#999900", width=1)
     if current:
         color = "orange" if parity else "pink"
+        print "current =", current
         nx.draw_networkx_edges(G, pos, edgelist=[current], edge_color=color, width=4)
     plt.axis('equal')
     if filename:
