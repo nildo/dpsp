@@ -176,7 +176,6 @@ def ofdp(G, s, t, k, draw=False, pos=None, debug=False):
                 print "Augmenting path not found"
                 print "Could not find", k, "paths"
                 print "Found only", i, "paths"
-                return False
             break
         ofdp_tracing_sap(G, s, t, draw=True, pos=pos, debug=debug)
         if draw:
@@ -186,4 +185,7 @@ def ofdp(G, s, t, k, draw=False, pos=None, debug=False):
                 print v, d
         reset()
         i += 1
-    return True
+    paths = []
+    for count in range(i):
+        paths.append(ofdp_get_path(G, s, t, count))
+    return paths

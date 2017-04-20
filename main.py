@@ -4,7 +4,8 @@ import argparse
 import networkx as nx
 import matplotlib.pyplot as plt
 from collections import deque
-from ofdp import ofdp, ofdp_get_path
+from ofdp import ofdp
+from ofdpex import ofdpex
 from dpsp import dpsp
 
 def create_graph(input_file):
@@ -128,7 +129,7 @@ def main():
                         type=argparse.FileType("w"), default=sys.stdout)
     parser.add_argument("-p", "--positions-file", nargs="?",
                         type=argparse.FileType("r"), default=None)
-    parser.add_argument("-a", "--algorithm", nargs="?", default="dpsp")
+    parser.add_argument("-a", "--algorithm", nargs="?", default="ofdpex")
     args = parser.parse_args()
 
     G = create_graph(args.input_file)
@@ -137,28 +138,17 @@ def main():
     else:
         pos = nx.spring_layout(G)
 
-    if args.algorithm == "dpsp":
-        draw_graph(G, pos, "dpsp0.png")
-        dpsp(G, "s", "t", 2, draw=True, pos=pos, debug=True)
-    else:
-        draw_graph(G, pos, "ofdp0.png")
+    if args.algorithm == "ofdp":
+        # draw_graph(G, pos, "ofdp0.png")
         result = ofdp(G, "s", "t", 2, draw=True, pos=pos, debug=True)
-        if result:
-            path1 = ofdp_get_path(G, "s", "t", 0)
-            path2 = ofdp_get_path(G, "s", "t", 1)
-            l1 = len(path1)
-            l2 = len(path2)
-            if l1 % 2 != l2 % 2:
-                ofdp(G, "s", "t", 3, draw=True, pos=pos, debug=True)
-                if result:
-                    path1 = ofdp_get_path(G, "s", "t", 0)
-                    path2 = ofdp_get_path(G, "s", "t", 1)
-                    path3 = ofdp_get_path(G, "s", "t", 2)
-                    print path1, path2, path3
-        else:
-            print "ERROR: There are no two disjoint paths."
-
-
+    elif args.algorithm == "ofdpex":
+        # draw_graph(G, pos, "ofdpex0.png")
+        result = ofdpex(G, "s", "t", 2, draw=True, pos=pos, debug=True)
+        print result
+    else:
+        # draw_graph(G, pos, "dpsp0.png")
+        result = dpsp(G, "s", "t", 2, draw=True, pos=pos, debug=True)
+        print result
 
 if __name__ == "__main__":
     main()
