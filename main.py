@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from collections import deque
 from ofdp import ofdp
 from ofdpex import ofdpex
+from ofdpex1 import ofdpex1
 from dpsp import dpsp
 
 def create_graph(input_file):
@@ -144,6 +145,9 @@ def main():
     elif args.algorithm == "ofdpex":
         # draw_graph(G, pos, "ofdpex0.png")
         result = ofdpex(G, "s", "t", 2, draw=True, pos=pos, debug=True)
+        print result
+    elif args.algorithm == "ofdpex1":
+        result = ofdpex1(G, "s", "t", 2, draw=True, pos=pos, debug=True)
         print result
     else:
         # draw_graph(G, pos, "dpsp0.png")
