@@ -20,6 +20,15 @@ def create_graph(input_file):
         G.add_edge(origin, destination, weight=w)
     return G
 
+def create_graph_from_adjacency_matrix(input_file):
+    G = nx.Graph()
+    line = input_file.readline()
+    n = int(line)
+    for i in range(n):
+        for j in range(n):
+            pass // TODO: continue implementing
+
+
 def get_positions(positions_file):
     lines = positions_file.readlines()
     pos = {}
