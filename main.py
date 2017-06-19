@@ -26,7 +26,7 @@ def create_graph_from_adjacency_matrix(input_file):
     n = int(line)
     for i in range(n):
         for j in range(n):
-            pass // TODO: continue implementing
+            pass # TODO: continue implementing
 
 
 def get_positions(positions_file):

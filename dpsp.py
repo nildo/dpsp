@@ -30,12 +30,19 @@ def dpsp_reset(G):
 
 def dpsp_get_path(G, s, t, index):
     path = [s]
+    previous_node = s
+    weight = 0
+    if len(G.node[s]["next"]) <= index:
+        return None, 10000
     current_node = G.node[s]["next"][index][0]
     while current_node != t:
         path.append(current_node)
+        weight += G.edge[previous_node][current_node]["weight"]
+        previous_node = current_node
         current_node = G.node[current_node]["next"][0][0]
     path.append(t)
-    return path
+    weight += G.edge[previous_node][current_node]["weight"]
+    return path, weight
 
 def dpsp_draw_graph(G, pos, filename=None, paths=False, current=None, parity=None):
     global dpsp_image_number
@@ -93,7 +100,10 @@ def dpsp_draw_graph(G, pos, filename=None, paths=False, current=None, parity=Non
 
 def dpsp_finding_sap(G, s, t, iteration, draw=False, pos=None, debug=False):
     queue = deque()
-    parity = iteration % 2
+    if iteration == 0 or iteration == 3:
+        parity = 1
+    else:
+        parity = 0
     for n in G.neighbors(s):
         queue.append((s, n, parity, 0))
     while queue:
@@ -152,7 +162,7 @@ def dpsp_finding_sap(G, s, t, iteration, draw=False, pos=None, debug=False):
     if draw:
         dpsp_draw_graph(G, pos, "dpsp", paths=True)
 
-def dpsp_tracing_sap(G, s, t, draw=False, pos=None, debug=False):
+def dpsp_tracing_sap(G, s, t, iteration, draw=False, pos=None, debug=False):
     queue = deque()
     if G.node[t]["type"] == "free":
         G.node[t]["type"] = "occupied"
@@ -161,22 +171,10 @@ def dpsp_tracing_sap(G, s, t, draw=False, pos=None, debug=False):
         # G.node[t]["FHB_prty"] = G.node[t]["FN_prty"]
         G.node[t]["FHB_dist_0"] = G.node[t]["FN_dist_0"]
         G.node[t]["FHB_dist_1"] = G.node[t]["FN_dist_1"]
-        if G.node[t]["FHB_dist_0"] < G.node[t]["FHB_dist_1"]:
-            G.node[t]["prev"] = [(G.node[t]["FHB_phcr_0"], 0)]
-        else:
-            G.node[t]["prev"] = [(G.node[t]["FHB_phcr_1"], 1)]
+        G.node[t]["prev"] = [(G.node[t]["FHB_phcr_1"], 1)]
         G.node[t]["next"] = []
     else:
-        if G.node[t]["prev"][-1][1] == 1:
-            if G.node[t]["FHB_phcr_0"]:
-                G.node[t]["prev"] += [(G.node[t]["FHB_phcr_0"], 0)]
-            else:
-                G.node[t]["prev"] += [(G.node[t]["FHB_phcr_1"], 1)]
-        else:
-            if G.node[t]["FHB_phcr_1"]:
-                G.node[t]["prev"] += [(G.node[t]["FHB_phcr_1"], 1)]
-            else:
-                G.node[t]["prev"] += [(G.node[t]["FHB_phcr_0"], 0)]
+        G.node[t]["prev"] += [(G.node[t]["FHB_phcr_0"], 0)]
     if not G.node[t]["prev"][-1][0]:
         return False
     queue.append((t, G.node[t]["prev"][-1][0], G.node[t]["prev"][-1][1]))
@@ -192,7 +190,7 @@ def dpsp_tracing_sap(G, s, t, draw=False, pos=None, debug=False):
             dpsp_draw_graph(G, pos, "dpsp", paths=True, current=(u,v))
         if v == s:
             if debug:
-                print "tracing", v, "source node"
+                print "tracing", v, "source node parity", parity
             if G.node[v]["type"] == "free":
                 G.node[v]["type"] = "occupied"
                 G.node[v]["next"] = [(u, parity)]
@@ -200,26 +198,26 @@ def dpsp_tracing_sap(G, s, t, draw=False, pos=None, debug=False):
                 G.node[v]["next"] += [(u, parity)]
         elif G.node[v]["type"] == "free":
             if debug:
-                print "tracing", v, "case 1"
+                print "tracing", v, "case 1 parity", parity
             G.node[v]["type"] = "occupied"
             G.node[v]["next"] = [(u, parity)]
             G.node[v]["prev"] = [(G.node[v]["FN_phcr_" + sp], send_parity)]
             queue.append((v, G.node[v]["FN_phcr_" + sp], send_parity))
         elif G.node[v]["type"] == "occupied" and u not in dict(G.node[v]["prev"]):
             if debug:
-                print "tracing", v, "case 2"
+                print "tracing", v, "case 2 parity", parity
             G.node[v]["next"] = [(u, parity)]
             queue.append((v, G.node[v]["OHB_phcr_" + sp], send_parity))
         elif G.node[v]["type"] == "occupied" and u in dict(G.node[v]["prev"]) and G.node[v]["FHB_dist_" + sp] > G.node[v]["OHB_dist_" + sp]:
             if debug:
-                print "tracing", v, "case 3"
+                print "tracing", v, "case 3 parity", parity
             G.node[v]["type"] = "free"
             G.node[v]["prev"] = []
             G.node[v]["next"] = []
             queue.append((v, G.node[v]["OHB_phcr_" + sp], send_parity))
         elif G.node[v]["type"] == "occupied" and u in dict(G.node[v]["prev"]) and G.node[v]["FHB_dist_" + sp] <= G.node[v]["OHB_dist_" + sp]:
             if debug:
-                print "tracing", v, "case 4"
+                print "tracing", v, "case 4 parity", parity
             G.node[v]["prev"] = [(G.node[v]["FHB_phcr_" + sp], send_parity)]
             queue.append((v, G.node[v]["FHB_phcr_" + sp], send_parity))
     if draw:
@@ -227,94 +225,55 @@ def dpsp_tracing_sap(G, s, t, draw=False, pos=None, debug=False):
         dpsp_draw_graph(G, pos, "dpsp", paths=True)
     return True
 
-def dpsp_remove_path(G, s, t, draw=False, pos=None, debug=False):
-    queue = deque()
-    queue.append((s, G.node[s]["next"][0][0]))
-    del(G.node[s]["next"][0])
-    while queue:
-        msg = queue.popleft()
-        u = msg[0]
-        v = msg[1]
-        print "debug", u, v
-        if draw:
-            dpsp_draw_graph(G, pos, "dpsp", paths=True, current=(u,v))
-        if debug:
-            print "removing", u, "->", v
-        if v == t:
-            del(G.node[v]["prev"][0])
-        elif G.node[v]["type"] == "occupied":
-            G.node[v]["type"] = "free"
-            queue.append((v, G.node[v]["next"][0][0]))
-            del(G.node[v]["prev"][0])
-            del(G.node[v]["next"][0])
-    if draw:
-        dpsp_draw_graph(G, pos, "dpsp", paths=True)
-
 def dpsp(G, s, t, k, draw=False, pos=None, debug=False):
 
     if draw and not pos:
         pos = nx.spring_layout(G)
+
     dpsp_initialize(G)
 
     i = 0
     dpsp_reset(G)
     dpsp_finding_sap(G, s, t, i, draw=draw, pos=pos, debug=debug)
-    dpsp_tracing_sap(G, s, t, draw=True, pos=pos, debug=debug)
+    dpsp_tracing_sap(G, s, t, i, draw=True, pos=pos, debug=debug)
 
-    i += 1
+    i = 1
     dpsp_reset(G)
     dpsp_finding_sap(G, s, t, i, draw=draw, pos=pos, debug=debug)
-    dpsp_tracing_sap(G, s, t, draw=True, pos=pos, debug=debug)
+    dpsp_tracing_sap(G, s, t, i, draw=True, pos=pos, debug=debug)
 
-    path0 = dpsp_get_path(G, s, t, 0)
-    print path0
-    path1 = dpsp_get_path(G, s, t, 1)
-    print path1
+    path0, w0 = dpsp_get_path(G, s, t, 0)
+    print path0, w0
+    path1, w1 = dpsp_get_path(G, s, t, 1)
+    print path1, w1
 
-    if len(path0) % 2 == len(path1) % 2:
-        return [path0, path1]
+    dpsp_initialize(G)
 
-    dpsp_remove_path(G, s, t, draw=draw, pos=pos, debug=debug)
-
-    i += 1
+    i = 2
     dpsp_reset(G)
     dpsp_finding_sap(G, s, t, i, draw=draw, pos=pos, debug=debug)
-    dpsp_tracing_sap(G, s, t, draw=True, pos=pos, debug=debug)
+    dpsp_tracing_sap(G, s, t, i, draw=True, pos=pos, debug=debug)
 
-    path0 = dpsp_get_path(G, s, t, 0)
-    print path0
-    path1 = dpsp_get_path(G, s, t, 1)
-    print path1
+    i = 3
+    dpsp_reset(G)
+    dpsp_finding_sap(G, s, t, i, draw=draw, pos=pos, debug=debug)
+    dpsp_tracing_sap(G, s, t, i, draw=True, pos=pos, debug=debug)
 
-    if len(path0) % 2 == len(path1) % 2:
-        return [path0, path1]
+    path2, w2 = dpsp_get_path(G, s, t, 0)
+    print path2, w2
+    path3, w3 = dpsp_get_path(G, s, t, 1)
+    print path3, w3
 
-    print "Error"
-
-    # while i < k:
-    #     if i == 2:
-    #         dpsp_remove_path(G, s, t, draw=draw, pos=pos, debug=debug)
-    #     found = dpsp_finding_sap(G, s, t, i, draw=draw, pos=pos, debug=debug)
-    #     if debug:
-    #         for v, d in G.nodes(data=True):
-    #             print v, d
-    #     if draw:
-    #         dpsp_draw_graph(G, pos, "dpsp")
-    #     if not found:
-    #         if debug:
-    #             print "Augmenting path not found"
-    #             print "Could not find", k, "paths"
-    #             print "Found only", i, "paths"
-    #         break
-    #     dpsp_tracing_sap(G, s, t, draw=True, pos=pos, debug=debug)
-    #     if debug:
-    #         for v, d in G.nodes(data=True):
-    #             print v, d
-    #     dpsp_reset()
-    #     if draw:
-    #         dpsp_draw_graph(G, pos, "dpsp", paths=True)
-    #     i += 1
-    # paths = []
-    # for count in range(i):
-    #     paths.append(dpsp_get_path(G, s, t, count))
-    # return paths
+    if path0 and path1 and path2 and path3:
+        if w0 + w1 > w2 + w3:
+            return [path0, path1]
+        else:
+            return [path2, path3]
+    else:
+        if path0 and path1:
+            return [path0, path1]
+        elif path2 and path3:
+            return [path2, path3]
+        else:
+            print "Error: There are no two paths of the same parity."
+            return None
