@@ -23,10 +23,18 @@ def create_graph(input_file):
 def create_graph_from_adjacency_matrix(input_file):
     G = nx.Graph()
     line = input_file.readline()
+    if len(line) == 0:
+        return None
     n = int(line)
     for i in range(n):
+        line = input_file.readline()
+        values = line.split()
         for j in range(n):
-            pass # TODO: continue implementing
+            w = float(values[j])
+            if w > 0:
+                iw = 1/w
+                G.add_edge(i, j, weight=w, inv_weight=iw)
+    return G
 
 
 def get_positions(positions_file):
@@ -40,96 +48,20 @@ def get_positions(positions_file):
         pos[node] = (x,y)
     return pos
 
-def duplicate_vertices(G):
-    G_dup = nx.Graph()
-    for e in G.edges(data=True):
-        G_dup.add_edge(e[0] + "1", e[1] + "2", weight=e[2]["weight"])
-        G_dup.add_edge(e[0] + "2", e[1] + "1", weight=e[2]["weight"])
-    return G_dup
-
-def duplicate_positions(pos):
-    pos2 = {}
-    dist = 0.25
-    for p, v in pos.iteritems():
-        pos2[p + "1"] = (v[0] - dist, v[1] + dist)
-        pos2[p + "2"] = (v[0] + dist, v[1] - dist)
-    return pos2
-
-def path_to_edge_list(path):
-    edges = []
-    for i in range(len(path)-1):
-        edges.append((path[i], path[i+1]))
-    return edges
-
-def draw_graph(G, pos, filename=None, paths=None, tree=None, nodes=None):
-    nx.draw_networkx_nodes(G, pos, node_size=500, node_color="w")
-    nx.draw_networkx_labels(G, pos)
-    nx.draw_networkx_edges(G, pos, alpha=0.2, width=1)
-    labels = nx.get_edge_attributes(G, 'weight')
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
-    if paths:
-        colors = ["r", "b", "g"]
-        for i, path in enumerate(paths):
-            edges = path_to_edge_list(path)
-            color = colors[i % len(colors)]
-            nx.draw_networkx_edges(G, pos, edgelist=edges, edge_color=color, width=2)
-    if tree:
-        for dest, path in tree.iteritems():
-            edges = path_to_edge_list(path)
-            nx.draw_networkx_edges(G, pos, edgelist=edges, edge_color="b", width=2)
-    plt.axis('equal')
-    if filename:
-        plt.savefig(filename, format="PNG")
+def calculate_paths(G, origin, destination, algorithm, draw=False, pos=None,
+                    debug=False):
+    if algorithm == "ofdp":
+        result = ofdp(G, origin, destination, 2, draw=draw, pos=pos, debug=debug)
     else:
-        plt.show()
-    plt.clf()
+        result = dpsp(G, origin, destination, 2, draw=draw, pos=pos, debug=debug)
+    return result
 
-def convert_to_digraph(G):
-    return G.to_directed()
-
-def modify_graph(G, paths):
-    G2 = G.copy()
+def get_paths_weight(G, paths):
+    result = 0
     for path in paths:
-        edges = []
-        new_edges = []
         for i in range(len(path)-1):
-            attrs = G[path[i]][path[i+1]]
-            attrs['weight'] = -attrs['weight']
-            edges.append((path[i], path[i+1]))
-            new_edges.append((path[i+1], path[i], attrs))
-        G2.remove_edges_from(edges)
-        G2.remove_edges_from(new_edges)
-        G2.add_edges_from(new_edges)
-    return G2
-
-def complement_path(path):
-    c_path = []
-    for vertex in path:
-        c_vertex = vertex[0]
-        if vertex[1] == "1":
-            c_vertex += "2"
-        else:
-            c_vertex += "1"
-        c_path.append(c_vertex)
-    return c_path
-
-def create_residual_graph(G, distances, tree):
-    for u, v, d in G.edges(data=True):
-        d["weight"] = d["weight"] - distances[v] + distances[u]
-    fwd_path = tree["t1"]
-    rev_path = fwd_path[::-1]
-    fwd_edges = path_to_edge_list(fwd_path)
-    rev_edges = path_to_edge_list(rev_path)
-    G.remove_edges_from(fwd_edges)
-    for u, v in rev_edges:
-        G[u][v]["weight"] = 0
-    fwd_path = complement_path(tree["t1"])
-    rev_path = fwd_path[::-1]
-    fwd_edges = path_to_edge_list(fwd_path)
-    rev_edges = path_to_edge_list(rev_path)
-    G.remove_edges_from(fwd_edges)
-    for u, v in rev_edges:
-        G[u][v]["weight"] = 0
+            result += G.edge[path[i]][path[i+1]]["weight"]
+    return result
 
 def main():
     parser = argparse.ArgumentParser()
@@ -140,28 +72,57 @@ def main():
     parser.add_argument("-p", "--positions-file", nargs="?",
                         type=argparse.FileType("r"), default=None)
     parser.add_argument("-a", "--algorithm", nargs="?", default="ofdpex")
+    parser.add_argument("-d", "--draw", action="store_true", default=False)
+    parser.add_argument("-v", "--debug", action="store_true", default=False)
+    parser.add_argument("-t", "--instances", nargs="?", default=None)
     args = parser.parse_args()
 
-    G = create_graph(args.input_file)
-    if args.positions_file:
-        pos = get_positions(args.positions_file)
-    else:
-        pos = nx.spring_layout(G)
+    initial_instance = None
+    final_instance = None
 
-    if args.algorithm == "ofdp":
-        # draw_graph(G, pos, "ofdp0.png")
-        result = ofdp(G, "s", "t", 2, draw=True, pos=pos, debug=True)
-    elif args.algorithm == "ofdpex":
-        # draw_graph(G, pos, "ofdpex0.png")
-        result = ofdpex(G, "s", "t", 2, draw=True, pos=pos, debug=True)
-        print result
-    elif args.algorithm == "ofdpex1":
-        result = ofdpex1(G, "s", "t", 2, draw=True, pos=pos, debug=True)
-        print result
-    else:
-        # draw_graph(G, pos, "dpsp0.png")
-        result = dpsp(G, "s", "t", 2, draw=True, pos=pos, debug=True)
-        print result
+    if args.instances:
+        interval = args.instances.split("-")
+        initial_instance = int(interval[0])
+        if len(interval) > 1:
+            final_instance = int(interval[1])
+
+    instance = 0
+    while args.input_file:
+        G = create_graph_from_adjacency_matrix(args.input_file)
+
+        if not G:
+            break
+        if initial_instance:
+            if instance < initial_instance:
+                instance += 1
+                continue
+        if final_instance:
+            if instance > final_instance:
+                instance += 1
+                continue
+
+        origin = 0
+        destination = G.number_of_nodes() / 2
+        if args.positions_file:
+            pos = get_positions(args.positions_file)
+        elif args.draw:
+            circular_pos = nx.circular_layout(G)
+            fixed_nodes = [origin, destination]
+            pos = nx.spring_layout(G, pos=circular_pos, fixed=fixed_nodes,
+                                   weight="inv_weight")
+        else:
+            pos = None
+
+        paths = None
+        weight = None
+
+        paths = calculate_paths(G, origin, destination, args.algorithm,
+                                 draw=args.draw, pos=pos, debug=args.debug)
+        if paths:
+            weight = get_paths_weight(G, paths)
+
+        print instance, paths, weight
+        instance +=1
 
 if __name__ == "__main__":
     main()

@@ -4,6 +4,10 @@ from collections import deque
 
 dpsp_image_number = 1
 
+def debug(is_debugging, *arguments):
+    if is_debugging:
+        print arguments
+
 def dpsp_initialize(G):
     for v in G.nodes():
         G.node[v]["type"] = "free"
@@ -61,8 +65,8 @@ def dpsp_draw_graph(G, pos, filename=None, paths=False, current=None, parity=Non
         # nx.draw_networkx_edges(G, pos, edgelist=path_edges_0, edge_color="#6666ff", width=4)
         path_edges_1 = list((u,v) for u,v in G.edges_iter()
                         if (v, 1) in G.node[u]["next"] or (u, 1) in G.node[v]["next"])
-        nx.draw_networkx_edges(G, pos, edgelist=path_edges_1, edge_color="#000099", width=4)
-        # nx.draw_networkx_edges(G, pos, edgelist=path_edges_1, edge_color="#6666ff", width=4)
+        # nx.draw_networkx_edges(G, pos, edgelist=path_edges_1, edge_color="#000099", width=4)
+        nx.draw_networkx_edges(G, pos, edgelist=path_edges_1, edge_color="#6666ff", width=4)
     fn_edges_0 = list((u,v) for u,v in G.edges_iter()
                         if (v == G.node[u]["FN_phcr_0"])
                         or (u == G.node[v]["FN_phcr_0"]))
@@ -118,7 +122,8 @@ def dpsp_finding_sap(G, s, t, iteration, draw=False, pos=None, debug=False):
         if draw:
             dpsp_draw_graph(G, pos, "dpsp", paths=True, current=(u,v), parity=p)
         if v == s:
-            print ""
+            if debug:
+                print "ignored"
             continue
         if G.node[v]["type"] == "free":
             G.node[v]["dist_" + p] = dist_u + G.edge[u][v]["weight"]
@@ -126,7 +131,8 @@ def dpsp_finding_sap(G, s, t, iteration, draw=False, pos=None, debug=False):
                 print "case 1 dist", dist_u, "parity", p,
                 print "dist_" + p, G.node[v]["dist_" + p], "FN_dist_" + p, G.node[v]["FN_dist_" + p],
             if G.node[v]["dist_" + p] < G.node[v]["FN_dist_" + p]:
-                print "changed",
+                if debug:
+                    print "changed",
                 G.node[v]["FN_phcr_" + p] = u
                 # G.node[v]["FN_prty"] = p
                 G.node[v]["FN_dist_" + p] = G.node[v]["dist_" + p]
@@ -139,7 +145,8 @@ def dpsp_finding_sap(G, s, t, iteration, draw=False, pos=None, debug=False):
                 print "case 2 dist", dist_u, "parity", p,
                 print "dist_" + p, G.node[v]["dist_" + p], "FHB_dist_" + p, G.node[v]["FHB_dist_" + p],
             if G.node[v]["dist_" + p] < G.node[v]["FHB_dist_" + p]:
-                print "changed",
+                if debug:
+                    print "changed",
                 G.node[v]["FHB_phcr_" + p] = u
                 # G.node[v]["FHB_prty"] = p
                 G.node[v]["FHB_dist_" + p] = G.node[v]["dist_" + p]
@@ -151,14 +158,16 @@ def dpsp_finding_sap(G, s, t, iteration, draw=False, pos=None, debug=False):
                 print "case 3 dist", dist_u, "parity", p,
                 print "dist_" + p, G.node[v]["dist_" + p], "OHB_dist_" + p, G.node[v]["OHB_dist_" + p],
             if G.node[v]["dist_" + p] < G.node[v]["OHB_dist_" + p]:
-                print "changed",
+                if debug:
+                    print "changed",
                 G.node[v]["OHB_phcr_" + p] = u
                 # G.node[v]["OHB_prty"] = p
                 G.node[v]["OHB_dist_" + p] = G.node[v]["dist_" + p]
                 for n in G.neighbors(v):
                     if n != u:
                         queue.append((v, n, send_parity, G.node[v]["dist_" + p]))
-        print ""
+        if debug:
+            print ""
     if draw:
         dpsp_draw_graph(G, pos, "dpsp", paths=True)
 
@@ -175,7 +184,7 @@ def dpsp_tracing_sap(G, s, t, iteration, draw=False, pos=None, debug=False):
         G.node[t]["next"] = []
     else:
         G.node[t]["prev"] += [(G.node[t]["FHB_phcr_0"], 0)]
-    if not G.node[t]["prev"][-1][0]:
+    if G.node[t]["prev"][-1][0] is None:
         return False
     queue.append((t, G.node[t]["prev"][-1][0], G.node[t]["prev"][-1][1]))
     while queue:
@@ -186,6 +195,7 @@ def dpsp_tracing_sap(G, s, t, iteration, draw=False, pos=None, debug=False):
         send_parity = (parity + 1) % 2
         rp = str(parity)
         sp = str(send_parity)
+        print "here -> ", v
         if draw:
             dpsp_draw_graph(G, pos, "dpsp", paths=True, current=(u,v))
         if v == s:
@@ -235,34 +245,38 @@ def dpsp(G, s, t, k, draw=False, pos=None, debug=False):
     i = 0
     dpsp_reset(G)
     dpsp_finding_sap(G, s, t, i, draw=draw, pos=pos, debug=debug)
-    dpsp_tracing_sap(G, s, t, i, draw=True, pos=pos, debug=debug)
+    dpsp_tracing_sap(G, s, t, i, draw=draw, pos=pos, debug=debug)
 
     i = 1
     dpsp_reset(G)
     dpsp_finding_sap(G, s, t, i, draw=draw, pos=pos, debug=debug)
-    dpsp_tracing_sap(G, s, t, i, draw=True, pos=pos, debug=debug)
+    dpsp_tracing_sap(G, s, t, i, draw=draw, pos=pos, debug=debug)
 
     path0, w0 = dpsp_get_path(G, s, t, 0)
-    print path0, w0
+    if debug:
+        print path0, w0
     path1, w1 = dpsp_get_path(G, s, t, 1)
-    print path1, w1
+    if debug:
+        print path1, w1
 
     dpsp_initialize(G)
 
     i = 2
     dpsp_reset(G)
     dpsp_finding_sap(G, s, t, i, draw=draw, pos=pos, debug=debug)
-    dpsp_tracing_sap(G, s, t, i, draw=True, pos=pos, debug=debug)
+    dpsp_tracing_sap(G, s, t, i, draw=draw, pos=pos, debug=debug)
 
     i = 3
     dpsp_reset(G)
     dpsp_finding_sap(G, s, t, i, draw=draw, pos=pos, debug=debug)
-    dpsp_tracing_sap(G, s, t, i, draw=True, pos=pos, debug=debug)
+    dpsp_tracing_sap(G, s, t, i, draw=draw, pos=pos, debug=debug)
 
     path2, w2 = dpsp_get_path(G, s, t, 0)
-    print path2, w2
+    if debug:
+        print path2, w2
     path3, w3 = dpsp_get_path(G, s, t, 1)
-    print path3, w3
+    if debug:
+        print path3, w3
 
     if path0 and path1 and path2 and path3:
         if w0 + w1 > w2 + w3:
@@ -275,5 +289,6 @@ def dpsp(G, s, t, k, draw=False, pos=None, debug=False):
         elif path2 and path3:
             return [path2, path3]
         else:
-            print "Error: There are no two paths of the same parity."
+            if debug:
+                print "Error: There are no two paths of the same parity."
             return None

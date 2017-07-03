@@ -61,10 +61,12 @@ def ofdp_finding_sap(G, s, t, draw=False, pos=None, debug=False):
         u = msg[0]
         v = msg[1]
         dist_u = msg[2]
-        if v == t:
-            found = True
         if draw:
             ofdp_draw_graph(G, pos, "ofdp", paths=True, current=(u,v))
+        if v == s:
+            if debug:
+                print "source node ignored"
+            continue
         if G.node[v]["type"] == "free":
             if debug:
                 print "finding", v, "case 1 dist", dist_u
@@ -72,6 +74,8 @@ def ofdp_finding_sap(G, s, t, draw=False, pos=None, debug=False):
             if G.node[v]["dist"] < G.node[v]["FN_dist"]:
                 G.node[v]["FN_phcr"] = u
                 G.node[v]["FN_dist"] = G.node[v]["dist"]
+                if v == t:
+                    found = True
                 for n in G.neighbors(v):
                     if n != u:
                         queue.append((v, n, G.node[v]["dist"]))
@@ -82,6 +86,8 @@ def ofdp_finding_sap(G, s, t, draw=False, pos=None, debug=False):
             if G.node[v]["dist"] < G.node[v]["FHB_dist"]:
                 G.node[v]["FHB_phcr"] = u
                 G.node[v]["FHB_dist"] = G.node[v]["dist"]
+                if v == t:
+                    found = True
                 queue.append((v, G.node[v]["prev"][0], G.node[v]["dist"]))
         elif G.node[v]["type"] == "occupied" and u in G.node[v]["next"]:
             if debug:
@@ -90,6 +96,8 @@ def ofdp_finding_sap(G, s, t, draw=False, pos=None, debug=False):
             if G.node[v]["dist"] < G.node[v]["OHB_dist"]:
                 G.node[v]["OHB_phcr"] = u
                 G.node[v]["OHB_dist"] = G.node[v]["dist"]
+                if v == t:
+                    found = True
                 for n in G.neighbors(v):
                     if n != u:
                         queue.append((v, n, G.node[v]["dist"]))
@@ -105,7 +113,8 @@ def ofdp_tracing_sap(G, s, t, draw=False, pos=None, debug=False):
         G.node[t]["next"] = []
     else:
         G.node[t]["prev"] += [G.node[t]["FHB_phcr"]]
-    queue.append((t, G.node[t]["FHB_phcr"]))
+    if G.node[t]["FHB_phcr"] is not None:
+        queue.append((t, G.node[t]["FHB_phcr"]))
     while queue:
         msg = queue.popleft()
         u = msg[0]
@@ -168,21 +177,21 @@ def ofdp(G, s, t, k, draw=False, pos=None, debug=False):
         found = ofdp_finding_sap(G, s, t, draw=draw, pos=pos, debug=debug)
         if draw:
             ofdp_draw_graph(G, pos, "ofdp")
-        if debug:
-            for v, d in G.nodes(data=True):
-                print v, d
+        # if debug:
+        #     for v, d in G.nodes(data=True):
+        #         print v, d
         if not found:
             if debug:
                 print "Augmenting path not found"
                 print "Could not find", k, "paths"
                 print "Found only", i, "paths"
             break
-        ofdp_tracing_sap(G, s, t, draw=True, pos=pos, debug=debug)
+        ofdp_tracing_sap(G, s, t, draw=draw, pos=pos, debug=debug)
         if draw:
             ofdp_draw_graph(G, pos, "ofdp", paths=True)
-        if debug:
-            for v, d in G.nodes(data=True):
-                print v, d
+        # if debug:
+        #     for v, d in G.nodes(data=True):
+        #         print v, d
         reset()
         i += 1
     paths = []
