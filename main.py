@@ -8,6 +8,7 @@ from ofdp import ofdp
 from ofdpex import ofdpex
 from ofdpex1 import ofdpex1
 from dpsp import dpsp
+from ilp import ilp
 
 def create_graph(input_file):
     G = nx.Graph()
@@ -49,11 +50,13 @@ def get_positions(positions_file):
     return pos
 
 def calculate_paths(G, origin, destination, algorithm, draw=False, pos=None,
-                    debug=False):
+                    debug=False, steps=False):
     if algorithm == "ofdp":
-        result = ofdp(G, origin, destination, 2, draw=draw, pos=pos, debug=debug)
+        result = ofdp(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+    elif algorithm == "ilp":
+        result = ilp(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     else:
-        result = dpsp(G, origin, destination, 2, draw=draw, pos=pos, debug=debug)
+        result = dpsp(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     return result
 
 def get_paths_weight(G, paths):
@@ -71,57 +74,78 @@ def main():
                         type=argparse.FileType("w"), default=sys.stdout)
     parser.add_argument("-p", "--positions-file", nargs="?",
                         type=argparse.FileType("r"), default=None)
-    parser.add_argument("-a", "--algorithm", nargs="?", default="ofdpex")
+    parser.add_argument("-a", "--algorithms", nargs="?", default="ofdpex")
     parser.add_argument("-d", "--draw", action="store_true", default=False)
+    parser.add_argument("-s", "--steps", action="store_true", default=False)
     parser.add_argument("-v", "--debug", action="store_true", default=False)
     parser.add_argument("-t", "--instances", nargs="?", default=None)
     args = parser.parse_args()
 
-    initial_instance = None
-    final_instance = None
+    selected_instance = None
+    selected_origin = None
+    selected_destination = None
 
     if args.instances:
-        interval = args.instances.split("-")
-        initial_instance = int(interval[0])
-        if len(interval) > 1:
-            final_instance = int(interval[1])
+        values = args.instances.split("-")
+        selected_instance = int(values[0])
+        if len(values) > 1:
+            selected_origin = int(values[1])
+        if len(values) > 2:
+            selected_destination = int(values[2])
+
+    algorithms = []
+
+    if args.algorithms:
+        algorithm_names = args.algorithms.split("-")
+        for alg in algorithm_names:
+            algorithms.append([alg, None])
 
     instance = 0
     while args.input_file:
         G = create_graph_from_adjacency_matrix(args.input_file)
-
         if not G:
             break
-        if initial_instance:
-            if instance < initial_instance:
+        if selected_instance:
+            if instance != selected_instance:
                 instance += 1
                 continue
-        if final_instance:
-            if instance > final_instance:
-                instance += 1
-                continue
-
-        origin = 0
-        destination = G.number_of_nodes() / 2
         if args.positions_file:
             pos = get_positions(args.positions_file)
         elif args.draw:
-            circular_pos = nx.circular_layout(G)
-            fixed_nodes = [origin, destination]
-            pos = nx.spring_layout(G, pos=circular_pos, fixed=fixed_nodes,
-                                   weight="inv_weight")
+            pos = nx.spring_layout(G, weight="inv_weight")
         else:
             pos = None
-
-        paths = None
-        weight = None
-
-        paths = calculate_paths(G, origin, destination, args.algorithm,
-                                 draw=args.draw, pos=pos, debug=args.debug)
-        if paths:
-            weight = get_paths_weight(G, paths)
-
-        print instance, paths, weight
+        if selected_origin:
+            origin_range = [selected_origin]
+        else:
+            origin_range = range(G.number_of_nodes())
+        # print "origin_range = ", origin_range
+        for origin in origin_range:
+            if selected_destination:
+                destination_range = [selected_destination]
+            else:
+                destination_range = []
+                for n in nx.non_neighbors(G, origin):
+                    if n > origin:
+                        destination_range.append(n)
+            # print "destination_range = ", destination_range
+            for destination in destination_range:
+                for alg in algorithms:
+                    alg[1] = None
+                    paths = None
+                    weight = None
+                    copyG = G.copy()
+                    paths = calculate_paths(copyG, origin, destination, alg[0], draw=args.draw, pos=pos, debug=args.debug, steps=args.steps)
+                    if paths:
+                        weight = get_paths_weight(copyG, paths)
+                        alg[1] = weight
+                        # print instance, origin, destination, sorted(paths, key=lambda x: x[1]), weight, alg[0]
+                result = algorithms[0][1]
+                for alg in algorithms:
+                    if alg[1] != result:
+                        print "Different results found on instance ", instance, origin, destination
+                        print algorithms
+                        break
         instance +=1
 
 if __name__ == "__main__":
