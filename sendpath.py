@@ -3,33 +3,20 @@ import matplotlib.pyplot as plt
 from collections import deque
 from pprint import pprint
 
-dpsp_image_number = 1
+sendpath_image_number = 1
 
-def debug(is_debugging, *arguments):
-    if is_debugging:
-        print arguments
-
-def dpsp_initialize(G):
+def sendpath_initialize(G):
     for v in G.nodes():
         G.node[v]["type"] = "free"
-        G.node[v]["next"] = []
-        G.node[v]["prev"] = []
-        G.node[v]["loop"] = 0
+        G.node[v]["next"] = [None, None]
+        G.node[v]["prev"] = [None None]
 
-def dpsp_reset(G):
+def sendpath_reset(G):
     for v in G.nodes():
-        G.node[v]["FN_phcr"] = [None, None]
-        G.node[v]["FN_dist"] = [10000, 10000]
-        G.node[v]["FN_path"] = [[], []]
-        G.node[v]["FHB_phcr"] = [None, None]
-        G.node[v]["FHB_dist"] = [10000, 10000]
-        G.node[v]["FHB_path"] = [[], []]
-        G.node[v]["OHB_phcr"] = [None, None]
-        G.node[v]["OHB_dist"] = [10000, 10000]
-        G.node[v]["OHB_path"] = [[], []]
+        G.node[v]["path"] = [[], []]
         G.node[v]["dist"] = [10000, 10000]
 
-def dpsp_get_path(G, s, t, index):
+def sendpath_get_path(G, s, t, index):
     path = [s]
     previous_node = s
     weight = 0
@@ -45,8 +32,8 @@ def dpsp_get_path(G, s, t, index):
     weight += G.edge[previous_node][current_node]["weight"]
     return path, weight
 
-def dpsp_draw_graph(G, pos, filename=None, paths=False, current=None, parity=None, source=None, destination=None):
-    global dpsp_image_number
+def sendpath_draw_graph(G, pos, filename=None, paths=False, current=None, parity=None, source=None, destination=None):
+    global sendpath_image_number
     free_nodes = list(n for n,d in G.nodes_iter(data=True) if d["type"] == "free")
     occupied_nodes = list(n for n,d in G.nodes_iter(data=True) if d["type"] == "occupied")
     nx.draw_networkx_nodes(G, pos, nodelist=free_nodes, node_size=500, node_color="w")
@@ -99,24 +86,20 @@ def dpsp_draw_graph(G, pos, filename=None, paths=False, current=None, parity=Non
         nx.draw_networkx_edges(G, pos, edgelist=[current], edge_color=color, width=4)
     plt.axis('equal')
     if filename:
-        plt.savefig(filename + str(dpsp_image_number) + ".png", format="PNG")
-        dpsp_image_number += 1
+        plt.savefig(filename + str(sendpath_image_number) + ".png", format="PNG")
+        sendpath_image_number += 1
     else:
         plt.show()
     plt.clf()
 
-def check_loop(u, v, path, s, t):
+def check_loop(u, v, path):
     for i in range(len(path)-1):
         if u == path[i]:
             if v == path[i+1]:
                 return True
-    if v != s and v != t:
-        for i in range(len(path)):
-            if v == path[i]:
-                return True
     return False
 
-def dpsp_finding_sap(G, s, t, iteration, draw=False, pos=None, debug=False, steps=False):
+def sendpath_finding_sap(G, s, t, iteration, draw=False, pos=None, debug=False, steps=False):
     queue = deque()
     if iteration == 0 or iteration == 3:
         parity = 1
@@ -133,72 +116,67 @@ def dpsp_finding_sap(G, s, t, iteration, draw=False, pos=None, debug=False, step
         dist_u = msg[3]
         path = msg[4]
         send_path = path + [v]
+
         if debug:
             print "finding", u, "->", v,
+
         if steps:
-            dpsp_draw_graph(G, pos, "dpsp", paths=True, current=(u,v), parity=p, source=s, destination=t)
-        # if v == s:
-        #     if debug:
-        #         print "ignored"
-        #     continue
-        # if v in path:
-        if check_loop(u, v, path, s, t):
+            sendpath_draw_graph(G, pos, "sendpath", paths=True, current=(u,v), parity=p, source=s, destination=t)
+
+        if check_loop(u, v, path):
             if debug:
                 print "loop detected: ", send_path
             continue
+
+        new_dist = dist_u + G.edge[u][v]["weight"]
+
+        if debug:
+            print dist_u, " + ", G.edge[u][v]["weight"], " = ", new_dist,
+
+        if new_dist < G.node[v]["dist"][p]:
+            if debug:
+                print " < ", G.node[v]["dist"][p], " changed",
+            G.node[v]["dist"][p] = new_dist
+            G.node[v]["path"][p] = path
+        elif new_dist == G.node[v]["dist"][p]:
+            if debug:
+                print " == ", G.node[v]["dist"][p], "tie"
+        else:
+            if debug:
+                print " > ", G.node[v]["dist"][p], "ignored"
+
         if G.node[v]["type"] == "free":
-            G.node[v]["dist"][p] = dist_u + G.edge[u][v]["weight"]
-            if debug:
-                print "case 1 dist", dist_u, "parity", p,
-                print "dist_" + str(p), G.node[v]["dist"][p], "FN_dist_" + str(p), G.node[v]["FN_dist"][p],
-            if G.node[v]["dist"][p] < G.node[v]["FN_dist"][p]:
-                if debug:
-                    print "changed",
-                G.node[v]["FN_phcr"][p] = u
-                G.node[v]["FN_dist"][p] = G.node[v]["dist"][p]
-                G.node[v]["FN_path"][p] = path
-                # if v != t:
-                for n in G.neighbors(v):
-                    if n != u:
-                        queue.append((v, n, send_parity, G.node[v]["dist"][p], send_path))
+                if v != t:
+                    for n in G.neighbors(v):
+                        if n != u:
+                            queue.append((v, n, send_parity, new_dist, send_path))
         elif G.node[v]["type"] == "occupied" and u not in dict(G.node[v]["prev"]) and u not in dict(G.node[v]["next"]):
-            G.node[v]["dist"][p] = dist_u + G.edge[u][v]["weight"]
-            if debug:
-                print "case 2 dist", dist_u, "parity", p,
-                print "dist_" + str(p), G.node[v]["dist"][p], "FHB_dist_" + str(p), G.node[v]["FHB_dist"][p],
-            if G.node[v]["dist"][p] < G.node[v]["FHB_dist"][p]:
-                if debug:
-                    print "changed",
-                G.node[v]["FHB_phcr"][p] = u
-                G.node[v]["FHB_dist"][p] = G.node[v]["dist"][p]
-                G.node[v]["FHB_path"][p] = path
-                # if v != t and v != s:
                 if v != s:
-                    queue.append((v, G.node[v]["prev"][0][0], send_parity, G.node[v]["dist"][p], send_path))
+                    queue.append((v, G.node[v]["prev"][0][0], send_parity, new_dist, send_path))
         elif G.node[v]["type"] == "occupied" and u in dict(G.node[v]["next"]):
-            G.node[v]["dist"][p] = dist_u - G.edge[u][v]["weight"]
+            new_dist = dist_u - G.edge[u][v]["weight"]
             if debug:
                 print "case 3 dist", dist_u, "parity", p,
-                print "dist_" + str(p), G.node[v]["dist"][p], "OHB_dist_" + str(p), G.node[v]["OHB_dist"][p],
-            if G.node[v]["dist"][p] < G.node[v]["OHB_dist"][p]:
+                print "dist_" + str(p), new_dist, "OHB_dist_" + str(p), G.node[v]["OHB_dist"][p],
+            if new_dist < G.node[v]["OHB_dist"][p]:
                 if debug:
                     print "changed",
                 G.node[v]["OHB_phcr"][p] = u
-                G.node[v]["OHB_dist"][p] = G.node[v]["dist"][p]
+                G.node[v]["OHB_dist"][p] = new_dist
                 G.node[v]["OHB_path"][p] = path
                 for n in G.neighbors(v):
                     if n != u:
-                        queue.append((v, n, send_parity, G.node[v]["dist"][p], send_path))
+                        queue.append((v, n, send_parity, new_dist, send_path))
         if debug:
             print ""
     if steps:
-        dpsp_draw_graph(G, pos, "dpsp", paths=True, source=s, destination=t)
-    # if debug:
-    #     for v, d in G.nodes(data=True):
-    #         print v
-    #         pprint(d)
+        sendpath_draw_graph(G, pos, "sendpath", paths=True, source=s, destination=t)
+    if debug:
+        for v, d in G.nodes(data=True):
+            print v
+            pprint(d)
 
-def dpsp_tracing_sap(G, s, t, iteration, draw=False, pos=None, debug=False, steps=False):
+def sendpath_tracing_sap(G, s, t, iteration, draw=False, pos=None, debug=False, steps=False):
     queue = deque()
     if G.node[t]["type"] == "free":
         G.node[t]["type"] = "occupied"
@@ -213,10 +191,10 @@ def dpsp_tracing_sap(G, s, t, iteration, draw=False, pos=None, debug=False, step
         G.node[t]["next"] = []
     else:
         G.node[t]["prev"] += [(G.node[t]["FHB_phcr"][0], 0)]
-        path = G.node[t]["FHB_path"][0]
+        path = G.node[t]["FHB_phcr"][0]
     if G.node[t]["prev"][-1][0] is None:
         return False
-    path = path[:-1]
+    print "path", path
     queue.append((t, G.node[t]["prev"][-1][0], G.node[t]["prev"][-1][1], path))
     while queue:
         msg = queue.popleft()
@@ -225,12 +203,8 @@ def dpsp_tracing_sap(G, s, t, iteration, draw=False, pos=None, debug=False, step
         parity = msg[2]
         send_parity = (parity + 1) % 2
         path = msg[3]
-        if len(path) > 0:
-            send_node = path[-1]
-            send_path = path[:-1]
-        else:
-            send_node = None
-            send_path = None
+        send_node = path[-1]
+        send_path = path[:-1]
         if u is None:
             if debug:
                 print "u is ", u
@@ -240,7 +214,7 @@ def dpsp_tracing_sap(G, s, t, iteration, draw=False, pos=None, debug=False, step
                 print "v is ", v
             continue
         if steps:
-            dpsp_draw_graph(G, pos, "dpsp", paths=True, current=(u,v), source=s, destination=t)
+            sendpath_draw_graph(G, pos, "sendpath", paths=True, current=(u,v), source=s, destination=t)
         # if v in path:
         #     if debug:
         #         print "loop detected:", send_path
@@ -254,55 +228,41 @@ def dpsp_tracing_sap(G, s, t, iteration, draw=False, pos=None, debug=False, step
         #         G.node[v]["next"] = [(u, parity)]
         #     else:
         #         G.node[v]["next"] += [(u, parity)]
-        if debug:
-            print "tracing", u, "->", v, "parity", parity, "path", path,
-        if G.node[v]["type"] == "free":
+        elif G.node[v]["type"] == "free":
             if debug:
-                print "case 1"
+                print "tracing", v, "case 1 parity", parity
             G.node[v]["type"] = "occupied"
             G.node[v]["next"] = [(u, parity)]
             G.node[v]["prev"] = [(G.node[v]["FN_phcr"][send_parity], send_parity)]
             # queue.append((v, G.node[v]["FN_phcr"][send_parity], send_parity, send_path))
-            if send_node is not None:
-                queue.append((v, send_node, send_parity, send_path))
+            queue.append((v, send_node, send_parity, send_path))
 
         elif G.node[v]["type"] == "occupied" and u not in dict(G.node[v]["prev"]):
             if debug:
-                print "case 2"
+                print "tracing", v, "case 2 parity", parity
+            G.node[v]["next"] = [(u, parity)]
             # queue.append((v, G.node[v]["OHB_phcr"][send_parity], send_parity, send_path))
-            if send_node is not None:
-                G.node[v]["next"] = [(u, parity)]
-                queue.append((v, send_node, send_parity, send_path))
-            else:
-                G.node[v]["next"] += [(u, parity)]
-        #elif G.node[v]["type"] == "occupied" and u in dict(G.node[v]["prev"]) and G.node[v]["FHB_dist"][send_parity] > G.node[v]["OHB_dist"][send_parity]:
-        elif G.node[v]["type"] == "occupied" and u in dict(G.node[v]["prev"]) and v in dict(G.node[send_node]["next"]):
+            queue.append((v, send_node, send_parity, send_path))
+        elif G.node[v]["type"] == "occupied" and u in dict(G.node[v]["prev"]) and G.node[v]["FHB_dist"][send_parity] > G.node[v]["OHB_dist"][send_parity]:
             if debug:
-                print "case 3"
+                print "tracing", v, "case 3 parity", parity
             G.node[v]["type"] = "free"
             G.node[v]["prev"] = []
             G.node[v]["next"] = []
             # queue.append((v, G.node[v]["OHB_phcr"][send_parity], send_parity, send_path))
-            if send_node is not None:
-                queue.append((v, send_node, send_parity, send_path))
-        # elif G.node[v]["type"] == "occupied" and u in dict(G.node[v]["prev"]) and G.node[v]["FHB_dist"][send_parity] <= G.node[v]["OHB_dist"][send_parity]:
-        elif G.node[v]["type"] == "occupied" and u in dict(G.node[v]["prev"]) and v not in dict(G.node[send_node]["next"]):
+            queue.append((v, send_node, send_parity, send_path))
+        elif G.node[v]["type"] == "occupied" and u in dict(G.node[v]["prev"]) and G.node[v]["FHB_dist"][send_parity] <= G.node[v]["OHB_dist"][send_parity]:
             if debug:
-                print "case 4"
+                print "tracing", v, "case 4 parity", parity
             G.node[v]["prev"] = [(G.node[v]["FHB_phcr"][send_parity], send_parity)]
             # queue.append((v, G.node[v]["FHB_phcr"][send_parity], send_parity, send_path))
-            if send_node is not None:
-                queue.append((v, send_node, send_parity, send_path))
-    if debug:
-        for v, d in G.nodes(data=True):
-            print v
-            pprint(d)
+            queue.append((v, send_node, send_parity, send_path))
     if steps:
-        dpsp_reset(G)
-        dpsp_draw_graph(G, pos, "dpsp", paths=True, source=s, destination=t)
+        sendpath_reset(G)
+        sendpath_draw_graph(G, pos, "sendpath", paths=True, source=s, destination=t)
     return True
 
-def dpsp(G, s, t, k, draw=False, pos=None, debug=False, steps=False):
+def sendpath(G, s, t, k, draw=False, pos=None, debug=False, steps=False):
 
     if draw and not pos:
         pos = nx.spring_layout(G)
@@ -316,43 +276,43 @@ def dpsp(G, s, t, k, draw=False, pos=None, debug=False, steps=False):
             print "Error: destination has less than 2 neighbors"
         return None
 
-    dpsp_initialize(G)
+    sendpath_initialize(G)
 
     i = 0
-    dpsp_reset(G)
-    dpsp_finding_sap(G, s, t, i, draw=draw, pos=pos, debug=debug, steps=steps)
-    found = dpsp_tracing_sap(G, s, t, i, draw=draw, pos=pos, debug=debug, steps=steps)
+    sendpath_reset(G)
+    sendpath_finding_sap(G, s, t, i, draw=draw, pos=pos, debug=debug, steps=steps)
+    found = sendpath_tracing_sap(G, s, t, i, draw=draw, pos=pos, debug=debug, steps=steps)
 
     if found:
         i = 1
-        dpsp_reset(G)
-        dpsp_finding_sap(G, s, t, i, draw=draw, pos=pos, debug=debug, steps=steps)
-        dpsp_tracing_sap(G, s, t, i, draw=draw, pos=pos, debug=debug, steps=steps)
+        sendpath_reset(G)
+        sendpath_finding_sap(G, s, t, i, draw=draw, pos=pos, debug=debug, steps=steps)
+        sendpath_tracing_sap(G, s, t, i, draw=draw, pos=pos, debug=debug, steps=steps)
 
-    path0, w0 = dpsp_get_path(G, s, t, 0)
+    path0, w0 = sendpath_get_path(G, s, t, 0)
     if debug:
         print path0, w0
-    path1, w1 = dpsp_get_path(G, s, t, 1)
+    path1, w1 = sendpath_get_path(G, s, t, 1)
     if debug:
         print path1, w1
 
-    dpsp_initialize(G)
+    sendpath_initialize(G)
 
     i = 2
-    dpsp_reset(G)
-    dpsp_finding_sap(G, s, t, i, draw=draw, pos=pos, debug=debug, steps=steps)
-    found = dpsp_tracing_sap(G, s, t, i, draw=draw, pos=pos, debug=debug, steps=steps)
+    sendpath_reset(G)
+    sendpath_finding_sap(G, s, t, i, draw=draw, pos=pos, debug=debug, steps=steps)
+    found = sendpath_tracing_sap(G, s, t, i, draw=draw, pos=pos, debug=debug, steps=steps)
 
     if found:
         i = 3
-        dpsp_reset(G)
-        dpsp_finding_sap(G, s, t, i, draw=draw, pos=pos, debug=debug, steps=steps)
-        dpsp_tracing_sap(G, s, t, i, draw=draw, pos=pos, debug=debug, steps=steps)
+        sendpath_reset(G)
+        sendpath_finding_sap(G, s, t, i, draw=draw, pos=pos, debug=debug, steps=steps)
+        sendpath_tracing_sap(G, s, t, i, draw=draw, pos=pos, debug=debug, steps=steps)
 
-    path2, w2 = dpsp_get_path(G, s, t, 0)
+    path2, w2 = sendpath_get_path(G, s, t, 0)
     if debug:
         print path2, w2
-    path3, w3 = dpsp_get_path(G, s, t, 1)
+    path3, w3 = sendpath_get_path(G, s, t, 1)
     if debug:
         print path3, w3
 
@@ -371,5 +331,5 @@ def dpsp(G, s, t, k, draw=False, pos=None, debug=False, steps=False):
                 print "Error: There are no two paths of the same parity."
             return None
     if draw:
-        dpsp_draw_graph(G, pos, "dpsp", paths=True, source=s, destination=t)
+        sendpath_draw_graph(G, pos, "sendpath", paths=True, source=s, destination=t)
     return result

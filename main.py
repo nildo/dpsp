@@ -9,6 +9,7 @@ from ofdpex import ofdpex
 from ofdpex1 import ofdpex1
 from dpsp import dpsp
 from ilp import ilp
+from yuster import yuster
 
 def create_graph(input_file):
     G = nx.Graph()
@@ -55,13 +56,17 @@ def calculate_paths(G, origin, destination, algorithm, draw=False, pos=None,
         result = ofdp(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     elif algorithm == "ilp":
         result = ilp(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
-    else:
+    elif algorithm == "dpsp":
         result = dpsp(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+    else:
+        result = yuster(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     return result
 
 def get_paths_weight(G, paths):
     result = 0
     for path in paths:
+        if type(path) is not list:
+            return 0
         for i in range(len(path)-1):
             result += G.edge[path[i]][path[i+1]]["weight"]
     return result
@@ -146,6 +151,7 @@ def main():
                         print "Different results found on instance ", instance, origin, destination
                         print algorithms
                         break
+        print instance
         instance +=1
 
 if __name__ == "__main__":
