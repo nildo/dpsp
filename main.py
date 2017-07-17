@@ -10,6 +10,7 @@ from ofdpex1 import ofdpex1
 from dpsp import dpsp
 from ilp import ilp
 from yuster import yuster
+from twofast import twofast
 
 def create_graph(input_file):
     G = nx.Graph()
@@ -58,8 +59,12 @@ def calculate_paths(G, origin, destination, algorithm, draw=False, pos=None,
         result = ilp(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     elif algorithm == "dpsp":
         result = dpsp(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
-    else:
+    elif algorithm == "yuster":
         result = yuster(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+    elif algorithm == "twofast":
+        result = twofast(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+    else:
+        result = None
     return result
 
 def get_paths_weight(G, paths):
@@ -120,13 +125,13 @@ def main():
             pos = nx.spring_layout(G, weight="inv_weight")
         else:
             pos = None
-        if selected_origin:
+        if selected_origin is not None:
             origin_range = [selected_origin]
         else:
             origin_range = range(G.number_of_nodes())
         # print "origin_range = ", origin_range
         for origin in origin_range:
-            if selected_destination:
+            if selected_destination is not None:
                 destination_range = [selected_destination]
             else:
                 destination_range = []
@@ -135,6 +140,7 @@ def main():
                         destination_range.append(n)
             # print "destination_range = ", destination_range
             for destination in destination_range:
+                # print instance, origin, destination
                 for alg in algorithms:
                     alg[1] = None
                     paths = None
@@ -151,7 +157,7 @@ def main():
                         print "Different results found on instance ", instance, origin, destination
                         print algorithms
                         break
-        print instance
+        # print instance
         instance +=1
 
 if __name__ == "__main__":

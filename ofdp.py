@@ -18,7 +18,7 @@ def ofdp_parity(G):
                     if v in G.node[u]["next"] or u in G.node[v]["next"])
     return len(path_edges)
 
-def ofdp_draw_graph(G, pos, filename=None, paths=False, current=None):
+def ofdp_draw_graph(G, pos, filename=None, paths=False, current=None, source=None, destination=None):
     global ofdp_image_number
     free_nodes = list(n for n,d in G.nodes_iter(data=True) if d["type"] == "free")
     occupied_nodes = list(n for n,d in G.nodes_iter(data=True) if d["type"] == "occupied")
@@ -43,6 +43,12 @@ def ofdp_draw_graph(G, pos, filename=None, paths=False, current=None):
     nx.draw_networkx_edges(G, pos, edgelist=ohb_edges, edge_color="yellow", width=1)
     if current:
         nx.draw_networkx_edges(G, pos, edgelist=[current], edge_color="orange", width=4)
+    if source is not None:
+        source_node = [source]
+        nx.draw_networkx_nodes(G, pos, nodelist=source_node, node_size=500, node_color="#b30000")
+    if destination is not None:
+        destination_node = [destination]
+        nx.draw_networkx_nodes(G, pos, nodelist=destination_node, node_size=500, node_color="#ff4d4d")
     plt.axis('equal')
     if filename:
         plt.savefig(filename + str(ofdp_image_number) + ".png", format="PNG")
@@ -154,7 +160,7 @@ def ofdp_tracing_sap(G, s, t, draw=False, pos=None, debug=False):
             G.node[v]["prev"] = [G.node[v]["FHB_phcr"]]
             queue.append((v, G.node[v]["FHB_phcr"]))
 
-def ofdp(G, s, t, k, draw=False, pos=None, debug=False):
+def ofdp(G, s, t, k, draw=False, pos=None, debug=False, steps=False):
     def initialize():
         for v in G.nodes():
             G.node[v]["type"] = "free"
@@ -174,7 +180,7 @@ def ofdp(G, s, t, k, draw=False, pos=None, debug=False):
     reset()
     i = 0
     while i < k:
-        found = ofdp_finding_sap(G, s, t, draw=draw, pos=pos, debug=debug)
+        found = ofdp_finding_sap(G, s, t, draw=steps, pos=pos, debug=debug)
         if draw:
             ofdp_draw_graph(G, pos, "ofdp")
         # if debug:
@@ -186,9 +192,9 @@ def ofdp(G, s, t, k, draw=False, pos=None, debug=False):
                 print "Could not find", k, "paths"
                 print "Found only", i, "paths"
             break
-        ofdp_tracing_sap(G, s, t, draw=draw, pos=pos, debug=debug)
+        ofdp_tracing_sap(G, s, t, draw=steps, pos=pos, debug=debug)
         if draw:
-            ofdp_draw_graph(G, pos, "ofdp", paths=True)
+            ofdp_draw_graph(G, pos, "ofdp", paths=True, source=s, destination=t)
         # if debug:
         #     for v, d in G.nodes(data=True):
         #         print v, d
