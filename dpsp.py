@@ -51,10 +51,10 @@ def dpsp_draw_graph(G, pos, filename=None, paths=False, current=None, parity=Non
     occupied_nodes = list(n for n,d in G.nodes_iter(data=True) if d["type"] == "occupied")
     nx.draw_networkx_nodes(G, pos, nodelist=free_nodes, node_size=500, node_color="w")
     nx.draw_networkx_nodes(G, pos, nodelist=occupied_nodes, node_size=500, node_color="b")
-    if source:
+    if source is not None:
         source_node = [source]
         nx.draw_networkx_nodes(G, pos, nodelist=source_node, node_size=500, node_color="#b30000")
-    if destination:
+    if destination is not None:
         destination_node = [destination]
         nx.draw_networkx_nodes(G, pos, nodelist=destination_node, node_size=500, node_color="#ff4d4d")
     nx.draw_networkx_labels(G, pos)
