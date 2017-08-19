@@ -5,15 +5,15 @@ from collections import deque
 from pprint import pprint
 from dpsp import dpsp
 
-# def twofast_remove_path_edges(G, s, t, paths):
+# def evencycle_remove_path_edges(G, s, t, paths):
 #     for i in range(len(paths)):
 #         for j in range(len(path[i])-1):
 #             G.remove_edge(paths[i][j], paths[i][j+1])
 
-twofast_image_number = 0
+evencycle_image_number = 0
 
-def twofast_draw_graph(G, pos, filename=None, paths=False, current=None):
-    global twofast_image_number
+def evencycle_draw_graph(G, pos, filename=None, paths=False, current=None):
+    global evencycle_image_number
     free_nodes = list(n for n,d in G.nodes_iter(data=True) if d["type"] == "free")
     occupied_nodes = list(n for n,d in G.nodes_iter(data=True) if d["type"] == "occupied")
     nx.draw_networkx_nodes(G, pos, nodelist=free_nodes, node_size=500, node_color="w")
@@ -39,13 +39,13 @@ def twofast_draw_graph(G, pos, filename=None, paths=False, current=None):
         nx.draw_networkx_edges(G, pos, edgelist=[current], edge_color="orange", width=4)
     plt.axis('equal')
     if filename:
-        plt.savefig(filename + str(twofast_image_number) + ".png", format="PNG")
-        twofast_image_number += 1
+        plt.savefig(filename + str(evencycle_image_number) + ".png", format="PNG")
+        evencycle_image_number += 1
     else:
         plt.show()
     plt.clf()
 
-def twofast_initialize(G):
+def evencycle_initialize(G):
     for v in G.nodes():
         if G.node[v]["type"] == "occupied":
             G.node[v]["subpaths"] = [{}, {}]
@@ -62,7 +62,7 @@ def sum_weights(G, path, i, j):
         s += w
     return s
 
-def twofast_calculate_subpaths(G, s, t, paths):
+def evencycle_calculate_subpaths(G, s, t, paths):
     for path in paths:
         for i in range(len(path)-1):
             for j in range(i+1, len(path)):
@@ -104,7 +104,7 @@ def twofast_calculate_subpaths(G, s, t, paths):
     #             G.node[v]["subpaths"][1].update(subpaths[1])
 
 
-def twofast_bfs(G, s, t, origin):
+def evencycle_bfs(G, s, t, origin):
     queue = deque()
     if origin == t:
         return
@@ -135,7 +135,7 @@ def twofast_bfs(G, s, t, origin):
             for n in G.neighbors(v):
                 queue.append((v, n, origin, send_parity, new_dist))
 
-def twofast_get_minimum_alternative(G, s, t):
+def evencycle_get_minimum_alternative(G, s, t):
     min_alternative = None
     min_gain = None
     for v in G.nodes():
@@ -162,7 +162,7 @@ def twofast_get_minimum_alternative(G, s, t):
                         min_alternative = (origin, v, 0)
     return min_alternative
 
-def twofast_get_source_next(G, s, t, end):
+def evencycle_get_source_next(G, s, t, end):
     antecessor = None
     current = end
     while current != s:
@@ -170,7 +170,7 @@ def twofast_get_source_next(G, s, t, end):
         current = G.node[current]["prev"][0]
     return antecessor
 
-def twofast_trace_alternative(G, s, t, origin, end, parity):
+def evencycle_trace_alternative(G, s, t, origin, end, parity):
     queue = deque()
     send_node = G.node[end]["alt_prevs"][parity][origin]
     queue.append((end, send_node, origin, parity))
@@ -190,7 +190,7 @@ def twofast_trace_alternative(G, s, t, origin, end, parity):
             queue.append((v, send_node, origin, send_parity))
         elif v == origin:
             if v == s:
-                send_node = twofast_get_source_next(G, s, t, end)
+                send_node = evencycle_get_source_next(G, s, t, end)
             else:
                 send_node = G.node[v]["next"][0]
             G.node[v]["next"].append(u)
@@ -206,7 +206,7 @@ def twofast_trace_alternative(G, s, t, origin, end, parity):
         else:
             G.node[v]["prev"].remove(u)
 
-def twofast_get_path(G, s, t, index):
+def evencycle_get_path(G, s, t, index):
     path = [s]
     current_node = G.node[s]["next"][index]
     while current_node != t:
@@ -216,7 +216,7 @@ def twofast_get_path(G, s, t, index):
     return path
 
 
-def twofast(G, s, t, k, draw=False, pos=None, debug=False, steps=False):
+def evencycle(G, s, t, k, draw=False, pos=None, debug=False, steps=False):
     newG = G.copy()
     paths = ofdp(newG, s, t, 2, draw=draw, pos=pos, debug=debug, steps=False)
 
@@ -232,20 +232,20 @@ def twofast(G, s, t, k, draw=False, pos=None, debug=False, steps=False):
 
     # print "Here!"
 
-    twofast_initialize(newG)
-    twofast_calculate_subpaths(newG, s, t, paths)
+    evencycle_initialize(newG)
+    evencycle_calculate_subpaths(newG, s, t, paths)
 
     for node in paths[0]:
-        twofast_bfs(newG, s, t, node)
+        evencycle_bfs(newG, s, t, node)
     for node in paths[1]:
-        twofast_bfs(newG, s, t, node)
+        evencycle_bfs(newG, s, t, node)
 
     if debug:
         for n, d in newG.nodes_iter(data=True):
             print n
             pprint(d)
 
-    min_alternative = twofast_get_minimum_alternative(newG, s, t)
+    min_alternative = evencycle_get_minimum_alternative(newG, s, t)
 
     if min_alternative is None:
         if debug:
@@ -253,13 +253,13 @@ def twofast(G, s, t, k, draw=False, pos=None, debug=False, steps=False):
         paths = dpsp(G, s, t, 2, draw=draw, pos=pos, debug=debug, steps=steps)
         return paths
 
-    twofast_trace_alternative(newG, s, t, min_alternative[0], min_alternative[1], min_alternative[2])
+    evencycle_trace_alternative(newG, s, t, min_alternative[0], min_alternative[1], min_alternative[2])
 
     if draw:
-        twofast_draw_graph(newG, pos, "twofast", paths=True)
+        evencycle_draw_graph(newG, pos, "evencycle", paths=True)
 
     paths = []
     for count in range(2):
-        paths.append(twofast_get_path(newG, s, t, count))
+        paths.append(evencycle_get_path(newG, s, t, count))
 
     return paths

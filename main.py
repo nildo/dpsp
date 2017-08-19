@@ -5,12 +5,16 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from collections import deque
 from ofdp import ofdp
+from ofdp3 import ofdp3
 from ofdpex import ofdpex
 from ofdpex1 import ofdpex1
 from dpsp import dpsp
 from ilp import ilp
 from yuster import yuster
 from twofast import twofast
+from oddcycle import oddcycle
+from splitpath import splitpath
+from create_data_file import generate_adjacency_matrix
 
 def create_graph(input_file):
     G = nx.Graph()
@@ -29,6 +33,8 @@ def create_graph_from_adjacency_matrix(input_file):
     if len(line) == 0:
         return None
     n = int(line)
+    for i in range(n):
+        G.add_node(i)
     for i in range(n):
         line = input_file.readline()
         values = line.split()
@@ -55,6 +61,8 @@ def calculate_paths(G, origin, destination, algorithm, draw=False, pos=None,
                     debug=False, steps=False):
     if algorithm == "ofdp":
         result = ofdp(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+    elif algorithm == "ofdp3":
+        result = ofdp3(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     elif algorithm == "ilp":
         result = ilp(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     elif algorithm == "dpsp":
@@ -63,6 +71,10 @@ def calculate_paths(G, origin, destination, algorithm, draw=False, pos=None,
         result = yuster(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     elif algorithm == "twofast":
         result = twofast(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+    elif algorithm == "oddcycle":
+        result = oddcycle(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+    elif algorithm == "splitpath":
+            result = splitpath(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     else:
         result = None
     return result
@@ -110,9 +122,22 @@ def main():
         for alg in algorithm_names:
             algorithms.append([alg, None])
 
+    if args.input_file.name == "topology":
+        generate_adjacency_matrix(args.input_file, "testbed.txt")
+        graphs_file = open("testbed.txt", "r")
+    else:
+        graphs_file = args.input_file
+
+    if args.output_file is not None:
+        args.output_file.write("Instance,Origin,Destination")
+        for alg in algorithms:
+            args.output_file.write("," + alg[0])
+        args.output_file.write("\n")
+
     instance = 0
-    while args.input_file:
-        G = create_graph_from_adjacency_matrix(args.input_file)
+    while graphs_file:
+        G = create_graph_from_adjacency_matrix(graphs_file)
+        print G
         if not G:
             break
         if selected_instance:
@@ -140,7 +165,7 @@ def main():
                         destination_range.append(n)
             # print "destination_range = ", destination_range
             for destination in destination_range:
-                # print instance, origin, destination
+                print instance, origin, destination
                 for alg in algorithms:
                     alg[1] = None
                     paths = None
@@ -156,7 +181,12 @@ def main():
                     if alg[1] != result:
                         print "Different results found on instance ", instance, origin, destination
                         print algorithms
-                        break
+                if args.output_file is not None:
+                    args.output_file.write(str(instance) + "," + str(origin) + "," + str(destination))
+                    for alg in algorithms:
+                        args.output_file.write("," + str(alg[1]))
+                    args.output_file.write("\n")
+                        # return
         # print instance
         instance +=1
 

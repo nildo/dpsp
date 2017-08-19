@@ -1,13 +1,19 @@
 #!/bin/bash
 set -x # print each command before executing
 
-rm dpsp*.png
-rm ofdp*.png
-rm ilp*.png
+rm *.png
 # python main.py -i test$1_topology -p test$1_positions -a ofdp -v
-python main.py -i inputs/graphs$1 -a ilp-twofast
+# python main.py -i inputs/graphs$1 -a ilp-oddcycle
 # python main.py -i inputs/graphs$1 -a ilp-dpsp -t 85-6-7 -v -d -s
 # python main.py -i inputs/graphs$1 -a ilp-twofast -t 2193-1-4 -v -d -s
 # python main.py -i inputs/graphs$1 -a ilp-twofast -t 61-0-7 -v -d -s
 # python main.py -i inputs/graphs$1 -a ilp-twofast -t 155-0-2 -v -d -s
-# python main.py -i inputs/graphs$1 -a ilp-twofast -t 0-0-2 -v -d -s
+# python main.py -i inputs/graphs$1 -a ilp-oddcycle -t 3249-2-4 -v -d -s
+# python main.py -i inputs/graphs$1 -a ilp-oddcycle -t 2660 -d
+# python main.py -i inputs/graphs$1 -a ilp-oddcycle -t 2899-0-3 -v -d -s
+# python main.py -i inputs/graphs$1 -a ilp-oddcycle -t 0-3-4 -v -d -s
+
+# python main.py -i inputs/graphs$1 -a ilp-splitpath -t 155-0-7 -v -d
+# python main.py -i inputs/graphs$1 -a ilp-splitpath
+
+python main.py -i topology -a ofdp-ilp-splitpath-ofdp3 -o results_3.csv

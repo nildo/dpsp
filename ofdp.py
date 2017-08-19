@@ -181,7 +181,7 @@ def ofdp(G, s, t, k, draw=False, pos=None, debug=False, steps=False):
     i = 0
     while i < k:
         found = ofdp_finding_sap(G, s, t, draw=steps, pos=pos, debug=debug)
-        if draw:
+        if steps:
             ofdp_draw_graph(G, pos, "ofdp")
         # if debug:
         #     for v, d in G.nodes(data=True):
@@ -193,7 +193,7 @@ def ofdp(G, s, t, k, draw=False, pos=None, debug=False, steps=False):
                 print "Found only", i, "paths"
             break
         ofdp_tracing_sap(G, s, t, draw=steps, pos=pos, debug=debug)
-        if draw:
+        if steps:
             ofdp_draw_graph(G, pos, "ofdp", paths=True, source=s, destination=t)
         # if debug:
         #     for v, d in G.nodes(data=True):
@@ -203,4 +203,6 @@ def ofdp(G, s, t, k, draw=False, pos=None, debug=False, steps=False):
     paths = []
     for count in range(i):
         paths.append(ofdp_get_path(G, s, t, count))
+    if draw:
+        ofdp_draw_graph(G, pos, "ofdp", paths=True, source=s, destination=t)
     return paths

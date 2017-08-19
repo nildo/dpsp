@@ -1,19 +1,20 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 from ofdp import ofdp
+from twofast import twofast
 from collections import deque
 from pprint import pprint
 from dpsp import dpsp
 
-# def twofast_remove_path_edges(G, s, t, paths):
+# def oddcycle_remove_path_edges(G, s, t, paths):
 #     for i in range(len(paths)):
 #         for j in range(len(path[i])-1):
 #             G.remove_edge(paths[i][j], paths[i][j+1])
 
-twofast_image_number = 0
+oddcycle_image_number = 0
 
-def twofast_draw_graph(G, pos, filename=None, paths=False, current=None, source=None, destination=None):
-    global twofast_image_number
+def oddcycle_draw_graph(G, pos, filename=None, paths=False, current=None, source=None, destination=None):
+    global oddcycle_image_number
     free_nodes = list(n for n,d in G.nodes_iter(data=True) if d["type"] == "free")
     occupied_nodes = list(n for n,d in G.nodes_iter(data=True) if d["type"] == "occupied")
     nx.draw_networkx_nodes(G, pos, nodelist=free_nodes, node_size=500, node_color="w")
@@ -25,6 +26,8 @@ def twofast_draw_graph(G, pos, filename=None, paths=False, current=None, source=
     if paths:
         path_edges = list((u,v) for u,v in G.edges_iter()
                         if v in G.node[u]["next"] or u in G.node[v]["next"])
+        # path_edges = list((u,v) for u,v in G.edges_iter()
+        #                 if (v in G.node[u]["next"] and u in G.node[v]["prev"]) or (v in G.node[u]["prev"] and u in G.node[v]["next"]))
         nx.draw_networkx_edges(G, pos, edgelist=path_edges, edge_color="b", width=4)
     fn_edges = list((u,v) for u,v in G.edges_iter()
                         if v == G.node[u]["FN_phcr"] or u == G.node[v]["FN_phcr"])
@@ -45,19 +48,19 @@ def twofast_draw_graph(G, pos, filename=None, paths=False, current=None, source=
         nx.draw_networkx_nodes(G, pos, nodelist=destination_node, node_size=500, node_color="#ff4d4d")
     plt.axis('equal')
     if filename:
-        plt.savefig(filename + str(twofast_image_number) + ".png", format="PNG")
-        twofast_image_number += 1
+        plt.savefig(filename + str(oddcycle_image_number) + ".png", format="PNG")
+        oddcycle_image_number += 1
     else:
         plt.show()
     plt.clf()
 
-def twofast_initialize(G):
+def oddcycle_initialize(G):
     for v in G.nodes():
         if G.node[v]["type"] == "occupied":
-            G.node[v]["subpaths"] = [{}, {}]
+            G.node[v]["subpaths"] = {}
         G.node[v]["alt_dists"] = [{}, {}]
         G.node[v]["alt_prevs"] = [{}, {}]
-        G.node[v]["alt_prtys"] = [{}, {}]
+        G.node[v]["alt_paths"] = [{}, {}]
 
 def sum_weights(G, path, i, j):
     s = 0
@@ -68,7 +71,7 @@ def sum_weights(G, path, i, j):
         s += w
     return s
 
-def twofast_calculate_subpaths(G, s, t, paths):
+def oddcycle_calculate_subpaths(G, s, t, paths):
     for path in paths:
         for i in range(len(path)-1):
             for j in range(i+1, len(path)):
@@ -110,10 +113,8 @@ def twofast_calculate_subpaths(G, s, t, paths):
     #             G.node[v]["subpaths"][1].update(subpaths[1])
 
 
-def twofast_bfs(G, s, t, origin):
+def oddcycle_bfs(G, s, t, origin, destination, debug=False):
     queue = deque()
-    if origin == t:
-        return
     for v in G.neighbors(origin):
         # queue.append((origin, v, origin, G.node[origin]["parity"], 0))
         queue.append((origin, v, origin, 1, 0))
@@ -125,8 +126,13 @@ def twofast_bfs(G, s, t, origin):
         parity = msg[3]
         distance = msg[4]
         send_parity = 0 if parity == 1 else 1
-        new_dist = distance + G.edge[u][v]["weight"]
         updated = False
+        if u in G.node[v]["prev"]:
+            continue
+        elif u in G.node[v]["next"]:
+            new_dist = distance - G.edge[u][v]["weight"]
+        else:
+            new_dist = distance + G.edge[u][v]["weight"]
         if origin in G.node[v]["alt_dists"][parity]:
             if new_dist < G.node[v]["alt_dists"][parity][origin]:
                 G.node[v]["alt_dists"][parity][origin] = new_dist
@@ -137,38 +143,29 @@ def twofast_bfs(G, s, t, origin):
             G.node[v]["alt_prevs"][parity][origin] = u
             updated = True
 
-        if G.node[v]["type"] == "free" and updated:
-            for n in G.neighbors(v):
-                queue.append((v, n, origin, send_parity, new_dist))
+        if v != destination and updated:
+            if len(G.node[v]["prev"]) > 0 and u not in G.node[v]["next"]:
+                queue.append((v, G.node[v]["prev"][0], origin, send_parity, new_dist))
+            else:
+                for n in G.neighbors(v):
+                    queue.append((v, n, origin, send_parity, new_dist))
 
-def twofast_get_minimum_alternative(G, s, t):
+def oddcycle_get_minimum_alternative(G, s, t, paths):
     min_alternative = None
     min_gain = None
-    for v in G.nodes():
-        if G.node[v]["type"] == "occupied" and v != s:
-            for origin, dist in G.node[v]["subpaths"][0].iteritems():
-                if origin in G.node[v]["alt_dists"][1]:
-                    gain = G.node[v]["alt_dists"][1][origin] - dist
-                    # print gain, G.node[v]["alt_dists"][1][origin], dist,
-                    if gain == 0:
-                        continue
-                    if min_gain is None or gain < min_gain:
-                        # print "changed"
-                        min_gain = gain
-                        min_alternative = (origin, v, 1)
-            for origin, dist in G.node[v]["subpaths"][1].iteritems():
-                if origin in G.node[v]["alt_dists"][0]:
-                    gain = G.node[v]["alt_dists"][0][origin] - dist
-                    # print gain, G.node[v]["alt_dists"][0][origin], dist,
-                    if gain == 0:
-                        continue
-                    if min_gain is None or gain < min_gain:
-                        # print "changed 2"
-                        min_gain = gain
-                        min_alternative = (origin, v, 0)
+    for path in paths:
+        for i in range(len(path)-1):
+            u = path[i]
+            v = path[i+1]
+            if min_alternative is None and u in G.node[v]["alt_prevs"][0]:
+                min_alternative = (u,v,0)
+                min_gain = G.node[v]["alt_dists"][0][u]
+            elif u in G.node[v]["alt_prevs"][0] and G.node[v]["alt_dists"][0][u] < min_gain:
+                min_alternative = (u,v,0)
+                min_gain = G.node[v]["alt_dists"][0][u]
     return min_alternative
 
-def twofast_get_source_next(G, s, t, end):
+def oddcycle_get_source_next(G, s, t, end):
     antecessor = None
     current = end
     while current != s:
@@ -176,11 +173,12 @@ def twofast_get_source_next(G, s, t, end):
         current = G.node[current]["prev"][0]
     return antecessor
 
-def twofast_trace_alternative(G, s, t, origin, end, parity, debug=False):
+def oddcycle_trace_alternative(G, s, t, origin, end, parity, debug=False):
     queue = deque()
     send_node = G.node[end]["alt_prevs"][parity][origin]
     queue.append((end, send_node, origin, parity))
-    G.node[end]["next"].append(send_node)
+    G.node[end]["prev"].remove(origin)
+    G.node[origin]["next"].remove(end)
     while queue:
         msg = queue.popleft()
         u = msg[0]
@@ -188,33 +186,27 @@ def twofast_trace_alternative(G, s, t, origin, end, parity, debug=False):
         origin = msg[2]
         parity = msg[3]
         send_parity = 0 if parity == 1 else 1
+
+        if v != origin:
+            send_node = G.node[v]["alt_prevs"][send_parity][origin]
+
         if debug:
             print "tracing", u, "->", v
-        if G.node[v]["type"] == "free":
-            send_node = G.node[v]["alt_prevs"][send_parity][origin]
-            G.node[v]["type"] = "occupied"
-            G.node[v]["next"] = [u]
-            G.node[v]["prev"] = [send_node]
-            queue.append((v, send_node, origin, send_parity))
-        elif v == origin:
-            if v == s:
-                send_node = twofast_get_source_next(G, s, t, end)
-            else:
-                send_node = G.node[v]["next"][0]
-            G.node[v]["next"].append(u)
-            # print v, G.node[v]["next"], send_node
-            G.node[v]["next"].remove(send_node)
-            queue.append((v, send_node, origin, send_parity))
-        elif v != end:
-            send_node = G.node[v]["next"][0]
-            G.node[v]["type"] = "free"
-            G.node[v]["prev"] = []
-            G.node[v]["next"] = []
-            queue.append((v, send_node, origin, send_parity))
-        else:
-            G.node[v]["prev"].remove(u)
 
-def twofast_get_path(G, s, t, index):
+        if G.node[v]["type"] == "free":
+            G.node[v]["type"] = "occupied"
+
+        if u in G.node[v]["prev"] and v in G.node[u]["next"]:
+            G.node[v]["prev"].remove(u)
+            G.node[u]["next"].remove(v)
+        else:
+            G.node[v]["next"].append(u)
+            G.node[u]["prev"].append(v)
+        if v != origin:
+            queue.append((v, send_node, origin, send_parity))
+
+
+def oddcycle_get_path(G, s, t, index):
     path = [s]
     current_node = G.node[s]["next"][index]
     while current_node != t:
@@ -223,8 +215,7 @@ def twofast_get_path(G, s, t, index):
     path.append(t)
     return path
 
-
-def twofast(G, s, t, k, draw=False, pos=None, debug=False, steps=False):
+def oddcycle(G, s, t, k, draw=False, pos=None, debug=False, steps=False):
     newG = G.copy()
     paths = ofdp(newG, s, t, 2, draw=draw, pos=pos, debug=debug, steps=False)
 
@@ -238,45 +229,67 @@ def twofast(G, s, t, k, draw=False, pos=None, debug=False, steps=False):
             print "OFDP worked!"
         return paths
 
-    # print "Here!"
+    if debug:
+        for n, d in newG.nodes_iter(data=True):
+            print n
+            pprint(d)
 
-    twofast_initialize(newG)
-    twofast_calculate_subpaths(newG, s, t, paths)
+    if debug:
+        print "OFDP didn't work! Calculating PUXADINHO"
 
-    for node in paths[0]:
-        twofast_bfs(newG, s, t, node)
-    for node in paths[1]:
-        twofast_bfs(newG, s, t, node)
+    newG2 = G.copy()
+    paths2 = twofast(newG2, s, t, 2, draw=draw, pos=pos, debug=debug, steps=False)
+
+    if paths2 is not None:
+        if debug:
+            print "PUXADINHO worked!"
+        # return paths2
+
+    if debug:
+        print "PUXADINHO didn't work! Calculating OFDP k=3"
+
+    newG3 = G.copy()
+    paths3 = ofdp(newG3, s, t, 3, draw=draw, pos=pos, debug=debug, steps=False)
+
+    if len(paths3) == 3:
+        if debug:
+            print "OFDP k=3 worked!"
+        if len(paths3[0]) % 2 == len(paths3[1]) % 2:
+            return [paths3[0], paths3[1]]
+        elif len(paths3[0]) % 2 == len(paths3[2]) % 2:
+            return [paths3[0], paths3[2]]
+        else:
+            return [paths3[1], paths3[2]]
+
+    oddcycle_initialize(newG)
+
+    for path in paths:
+        for i in range(len(path)-1):
+            oddcycle_bfs(newG, s, t, path[i], path[i+1])
+
+    min_alternative = oddcycle_get_minimum_alternative(newG, s, t, paths)
+
+    if debug:
+        print "min_alternative:", min_alternative
+
+    if min_alternative is None:
+        if debug:
+            print "No alternative found! Calculating DPSP."
+        paths = dpsp(G, s, t, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+        return paths
+
+    oddcycle_trace_alternative(newG, s, t, min_alternative[0], min_alternative[1], min_alternative[2], debug=debug)
 
     if debug:
         for n, d in newG.nodes_iter(data=True):
             print n
             pprint(d)
 
-    min_alternative = twofast_get_minimum_alternative(newG, s, t)
-
-    if debug:
-        print "min_alternative =", min_alternative
-
-    if min_alternative is None:
-        if debug:
-            print "No alternative found!"
-        # paths = dpsp(G, s, t, 2, draw=draw, pos=pos, debug=debug, steps=steps)
-        # return paths
-        return None
-
-    if min_alternative[0] == s and min_alternative[1] == t:
-        if debug:
-            print "There are three paths!"
-        return None
-
-    twofast_trace_alternative(newG, s, t, min_alternative[0], min_alternative[1], min_alternative[2], debug=debug)
-
     if draw:
-        twofast_draw_graph(newG, pos, "twofast", paths=True, source=s, destination=t)
+        oddcycle_draw_graph(newG, pos, "oddcycle", paths=True, source=s, destination=t)
 
     paths = []
     for count in range(2):
-        paths.append(twofast_get_path(newG, s, t, count))
+        paths.append(oddcycle_get_path(newG, s, t, count))
 
     return paths

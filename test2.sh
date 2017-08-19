@@ -33,4 +33,4 @@ rm *.png
 # [['ilp', 6.0], ['twofast', 8.0]]
 
 
-python main.py -i inputs/graphs$1 -a ilp-twofast -t 2977-3-4 -v -d -s # with $1 == 8
+python main.py -i inputs/graphs$1 -a ilp-oddcycle -t 2977-3-4 -v -d -s # with $1 == 8
