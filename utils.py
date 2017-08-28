@@ -1,5 +1,6 @@
 import networkx as nx
 import matplotlib.pyplot as plt
+from pprint import pprint
 
 def draw_graph(G, pos, filename=None, paths=False, current=None, parity=None, source=None, destination=None):
     global dpsp_image_number
@@ -60,3 +61,11 @@ def draw_graph(G, pos, filename=None, paths=False, current=None, parity=None, so
     else:
         plt.show()
     plt.clf()
+
+def printg(G):
+    for u in G.nodes():
+        print u, "->"
+        for v in G.neighbors(u):
+            print "  ", v, " ",
+            pprint(G.edge[u][v])
+        print ""

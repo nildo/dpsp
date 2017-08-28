@@ -115,7 +115,7 @@ def get_link_intersection(links1, links2):
     for key, value in links1.iteritems():
         if key in links2:
             link_inter[key] = value
-    return link_inter;
+    return link_inter
 
 def get_link_assymetry(links, difference=None):
     link_assymetry = {}
@@ -159,6 +159,19 @@ def generate_adjacency_matrix(input_file, output_file_name):
         output_file.write("\n")
     output_file.close()
 
+def create_multidigraph(input_file):
+    log = read_log_file(input_file, ["uint16_t", "uint16_t", "uint8_t", "uint16_t"])
+    nodes = get_nodes(log)
+    links1 = get_links(log, 1)
+    links2 = get_links(log, 2)
+    Q = nx.MultiDiGraph()
+    for edge, weight in links1.iteritems():
+        Q.add_edge(edge[0], edge[1], 1, weight=weight)
+    for edge, weight in links2.iteritems():
+        Q.add_edge(edge[0], edge[1], 2, weight=weight)
+    return Q
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input-file", nargs="?",
@@ -179,28 +192,28 @@ def main():
 
 
 
-    assym1 = get_link_assymetry(links1)
-    pprint(assym1)
-    print float(len(assym1)) / len(links1)
-    print sum(assym1.values()) / len(assym1.values())
-
-    assym2 = get_link_assymetry(links2)
-    pprint(assym2)
-    print float(len(assym2)) / len(links2)
-    print sum(assym2.values()) / len(assym2.values())
+    # assym1 = get_link_assymetry(links1)
+    # pprint(assym1)
+    # print float(len(assym1)) / len(links1)
+    # print sum(assym1.values()) / len(assym1.values())
+    #
+    # assym2 = get_link_assymetry(links2)
+    # pprint(assym2)
+    # print float(len(assym2)) / len(links2)
+    # print sum(assym2.values()) / len(assym2.values())
 
     # merged = merge_links(links1, links2)
     # diff = get_link_difference(links1, links2)
     # print diff
     # print float(len(diff)) / len(merged)
 
-    # for difference in range(10):
-    #     assym1 = get_link_assymetry(links1, difference*10)
-    #     print difference*10, float(len(assym1)) / len(links1)
-    #
-    # for difference in range(10):
-    #     assym2 = get_link_assymetry(links2, difference*10)
-    #     print difference*10, float(len(assym2)) / len(links2)
+    for difference in range(10):
+        assym1 = get_link_assymetry(links1, difference*10)
+        print difference*10, float(len(assym1)) / len(links1)
+
+    for difference in range(10):
+        assym2 = get_link_assymetry(links2, difference*10)
+        print difference*10, float(len(assym2)) / len(links2)
 
     # create_data_file(nodes, merged, outputFile, source, destination)
 

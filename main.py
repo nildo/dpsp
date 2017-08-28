@@ -88,6 +88,12 @@ def get_paths_weight(G, paths):
             result += G.edge[path[i]][path[i+1]]["weight"]
     return result
 
+def get_paths_hops(paths):
+    result = 0
+    for path in paths:
+        result += len(path)-1
+    return result
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input-file", nargs="?",
@@ -120,7 +126,7 @@ def main():
     if args.algorithms:
         algorithm_names = args.algorithms.split("-")
         for alg in algorithm_names:
-            algorithms.append([alg, None])
+            algorithms.append([alg, None, None])
 
     if args.input_file.name == "topology":
         generate_adjacency_matrix(args.input_file, "testbed.txt")
@@ -131,7 +137,7 @@ def main():
     if args.output_file is not None:
         args.output_file.write("Instance,Origin,Destination")
         for alg in algorithms:
-            args.output_file.write("," + alg[0])
+            args.output_file.write("," + alg[0] + ",hops_" + alg[0])
         args.output_file.write("\n")
 
     instance = 0
@@ -168,6 +174,7 @@ def main():
                 print instance, origin, destination
                 for alg in algorithms:
                     alg[1] = None
+                    alg[2] = None
                     paths = None
                     weight = None
                     copyG = G.copy()
@@ -175,6 +182,8 @@ def main():
                     if paths:
                         weight = get_paths_weight(copyG, paths)
                         alg[1] = weight
+                        hops = get_paths_hops(paths)
+                        alg[2] = hops
                         # print instance, origin, destination, sorted(paths, key=lambda x: x[1]), weight, alg[0]
                 result = algorithms[0][1]
                 for alg in algorithms:
@@ -184,7 +193,7 @@ def main():
                 if args.output_file is not None:
                     args.output_file.write(str(instance) + "," + str(origin) + "," + str(destination))
                     for alg in algorithms:
-                        args.output_file.write("," + str(alg[1]))
+                        args.output_file.write("," + str(alg[1]) + "," + str(alg[2]))
                     args.output_file.write("\n")
                         # return
         # print instance
