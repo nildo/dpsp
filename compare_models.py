@@ -66,21 +66,81 @@ def get_assymetric_links(Q):
 def get_assymetric_histogram(Q):
     h = {}
     analysed = []
+    count = 0
     for u,v,k,d in Q.edges_iter(keys=True, data=True):
-        if Q.has_edge(v,u,k) and (v,u,k) not in analysed:
+        if (u,v,k) not in analysed:
+            analysed.append((u,v,k))
             w1 = d["weight"]
-            w2 = Q.edge[v][u][k]["weight"]
-            if w1 == w2:
-                wd = -1
+            if Q.has_edge(v,u,k):
+                analysed.append((v,u,k))
+                w2 = Q.edge[v][u][k]["weight"]
             else:
-                wd = abs(w1 - w2) // 10
+                count += 1
+                w2 = 100
+            wd = abs(w1 - w2) // 10
             if wd not in h:
                 h[wd] = 1
             else:
                 h[wd] += 1
-            analysed.append((u,v,k))
+
+    print count
     return h
 
+def get_homogeneity_histogram(Q):
+    h = {}
+    analysed = []
+    count = 0
+    for u,v,k,d in Q.edges_iter(keys=True, data=True):
+        kb = 1 if k == 2 else 2
+        if (u,v,k) not in analysed:
+            analysed.append((u,v,k))
+            w1 = d["weight"]
+            if Q.has_edge(u,v,kb):
+                analysed.append((u,v,kb))
+                w2 = Q.edge[u][v][kb]["weight"]
+            else:
+                count += 1
+                w2 = 100
+            wd = abs(w1 - w2) // 10
+            if wd not in h:
+                h[wd] = 1
+            else:
+                h[wd] += 1
+    print count
+    return h
+
+def get_symmetry(Q):
+    a = 0
+    p = 0
+    s = 0
+    for u,v,k,d in Q.edges_iter(keys=True, data=True):
+        if Q.has_edge(v,u,k):
+            if Q.edge[u][v][k]["weight"] == Q.edge[v][u][k]["weight"]:
+                s += 1
+            else:
+                p += 1
+        else:
+            a += 1
+    total = a + p + s
+    print a, p, s
+    print float(a)/total, float(p)/total, float(s)/total
+
+def get_homogeneity(Q):
+    a = 0
+    p = 0
+    s = 0
+    for u,v,k,d in Q.edges_iter(keys=True, data=True):
+        kb = 1 if k == 2 else 2
+        if Q.has_edge(u,v,kb):
+            if Q.edge[u][v][k]["weight"] == Q.edge[u][v][kb]["weight"]:
+                s += 1
+            else:
+                p += 1
+        else:
+            a += 1
+    total = a + p + s
+    print a, p, s
+    print float(a)/total, float(p)/total, float(s)/total
 
 
 def main():
@@ -97,8 +157,24 @@ def main():
     # print len(assym)
     # print h
 
-    assymh = get_assymetric_histogram(Q)
-    print assymh
+    # h = get_assymetric_histogram(Q)
+    # # h = get_homogeneity_histogram(Q)
+    # accumulated = 0
+    # total = sum(h.values())
+    # for key, value in h.iteritems():
+    #     accumulated += value
+    #     print key*10, value, accumulated, total
+    #
+    # # h = get_assymetric_histogram(Q)
+    # h = get_homogeneity_histogram(Q)
+    # accumulated = 0
+    # total = sum(h.values())
+    # for key, value in h.iteritems():
+    #     accumulated += value
+    #     print key*10, value, accumulated, total
+
+    # get_symmetry(Q)
+    get_homogeneity(Q)
 
 if __name__ == "__main__":
     main()

@@ -1,9 +1,8 @@
 import csv
 from pprint import pprint
 
-
-def main():
-    with open("outputs/rand_100_30pc.csv") as csvfile:
+def print_statistics(input_file_name):
+    with open(input_file_name) as csvfile:
         reader = csv.DictReader(csvfile)
 
         general_counter = 0
@@ -62,13 +61,21 @@ def main():
                             ofdp3_hops_histogram[hops_ofdp3] = 1
                         ofdp3_diff.append((ofdp3 - ilp) / ilp)
 
-        print general_counter, ilp_counter, splitpath_counter, ofdp3_counter
-        print sum(splitpath_diff) / len(splitpath_diff), sum(ofdp3_diff) / len(ofdp3_diff)
-        pprint(splitpath_hops_histogram)
-        pprint(ofdp3_hops_histogram)
+    # print general_counter, ilp_counter, splitpath_counter, ofdp3_counter
+    print sum(splitpath_diff) / len(splitpath_diff) * 100, sum(ofdp3_diff) / len(ofdp3_diff) * 100
+    # pprint(splitpath_hops_histogram)
+    # pprint(ofdp3_hops_histogram)
+    # print float(splitpath_counter) / ilp_counter * 100,
+    # print float(ofdp3_counter) / ilp_counter * 100
 
-
-
+def main():
+    filenames = ["outputs/graph_weighted_100_495.csv",
+                 "outputs/graph_weighted_100_1485.csv",
+                 "outputs/graph_weighted_100_2475.csv",
+                 "outputs/graph_weighted_100_3465.csv",
+                 "outputs/graph_weighted_100_4455.csv"]
+    for filename in filenames:
+        print_statistics(filename)
 
 if __name__ == "__main__":
     main()

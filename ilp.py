@@ -1,16 +1,9 @@
 import re
-import subprocess
 import networkx as nx
 import matplotlib.pyplot as plt
+from utils import *
 
 ilp_image_number = 0
-
-def execute(command):
-    p = subprocess.Popen(command, stdout=subprocess.PIPE)
-    output, error = p.communicate()
-    if error is None:
-        return output
-    return error
 
 def ilp_initialize(G):
     for v in G.nodes():
@@ -25,13 +18,15 @@ def ilp_get_path(G, s, t, index):
     if len(G.node[s]["next"]) <= index:
         return None, 10000
     current_node = G.node[s]["next"][index][0]
+    current_radio = G.node[s]["next"][index][1] + 1
     while current_node != t:
         path.append(current_node)
-        weight += G.edge[previous_node][current_node]["weight"]
+        weight += G.edge[previous_node][current_node][current_radio]["weight"]
         previous_node = current_node
         current_node = G.node[current_node]["next"][0][0]
+        current_radio = 1 if current_radio == 2 else 2
     path.append(t)
-    weight += G.edge[previous_node][current_node]["weight"]
+    weight += G.edge[previous_node][current_node][current_radio]["weight"]
     return path, weight
 
 def ilp_draw_graph(G, pos, filename=None, paths=False, current=None, parity=None, source=None, destination=None):
@@ -80,17 +75,24 @@ def create_data_file(G, origin, destination, file_name):
             output.write(", " + str(nodes[i]))
     output.write(";\nset O := " + str(origin) + ";\n")
     output.write("set D := "+ str(destination) +";\nparam: A: c1 c2 :=\n")
-    for u,v,d in G.edges_iter(data=True):
-        output.write(str(u) + "," + str(v) + " ")
-        output.write(str(d["weight"]) + " " + str(d["weight"]) + "\n")
-        output.write(str(v) + "," + str(u) + " ")
-        output.write(str(d["weight"]) + " " + str(d["weight"]) + "\n")
+    added_edges = []
+    for u,v,k,d in G.edges_iter(keys=True, data=True):
+        if (u,v,k) not in added_edges:
+            if k == 1:
+                w1 = d["weight"]
+                w2 = G.edge[u][v][2]["weight"] if G.has_edge(u,v,2) else 10000
+            if k == 2:
+                w1 = G.edge[u][v][1]["weight"] if G.has_edge(u,v,1) else 10000
+                w2 = d["weight"]
+            output.write(str(u) + "," + str(v) + " ")
+            output.write(str(w1) + " " + str(w2) + "\n")
+            added_edges.append((u,v,1))
+            added_edges.append((u,v,2))
     output.write(";\nend;")
     output.close()
 
 def solve_ilp_problem(model, data, output):
     command = "glpsol -m " + model + " -d " + data + " -o " + output
-    command = command.split()
     execute(command)
 
 def get_path(matches, origin, destination, parity):

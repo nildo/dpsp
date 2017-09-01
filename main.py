@@ -15,6 +15,7 @@ from twofast import twofast
 from oddcycle import oddcycle
 from splitpath import splitpath
 from create_data_file import generate_adjacency_matrix
+from utils import *
 
 def create_graph(input_file):
     G = nx.Graph()
@@ -26,25 +27,6 @@ def create_graph(input_file):
         w = int(nodes[2])
         G.add_edge(origin, destination, weight=w)
     return G
-
-def create_graph_from_adjacency_matrix(input_file):
-    G = nx.Graph()
-    line = input_file.readline()
-    if len(line) == 0:
-        return None
-    n = int(line)
-    for i in range(n):
-        G.add_node(i)
-    for i in range(n):
-        line = input_file.readline()
-        values = line.split()
-        for j in range(n):
-            w = float(values[j])
-            if w > 0:
-                iw = 1/w
-                G.add_edge(i, j, weight=w, inv_weight=iw)
-    return G
-
 
 def get_positions(positions_file):
     lines = positions_file.readlines()
@@ -77,21 +59,6 @@ def calculate_paths(G, origin, destination, algorithm, draw=False, pos=None,
             result = splitpath(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     else:
         result = None
-    return result
-
-def get_paths_weight(G, paths):
-    result = 0
-    for path in paths:
-        if type(path) is not list:
-            return 0
-        for i in range(len(path)-1):
-            result += G.edge[path[i]][path[i+1]]["weight"]
-    return result
-
-def get_paths_hops(paths):
-    result = 0
-    for path in paths:
-        result += len(path)-1
     return result
 
 def main():
@@ -142,8 +109,10 @@ def main():
 
     instance = 0
     while graphs_file:
-        G = create_graph_from_adjacency_matrix(graphs_file)
-        print G
+        if "digraph" in graphs_file.name:
+            G = create_multidigraph_from_adjacency_matrix(graphs_file)
+        else:
+            G = create_graph_from_adjacency_matrix(graphs_file)
         if not G:
             break
         if selected_instance:

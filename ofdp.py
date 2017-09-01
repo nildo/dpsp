@@ -18,29 +18,40 @@ def ofdp_parity(G):
                     if v in G.node[u]["next"] or u in G.node[v]["next"])
     return len(path_edges)
 
-def ofdp_draw_graph(G, pos, filename=None, paths=False, current=None, source=None, destination=None):
+def ofdp_draw_graph(G, pos, filename=None, paths=False, current=None, source=None, destination=None,
+                    draw_free_nodes=True, draw_occupied_nodes=True, draw_edges=True, draw_labels=True,
+                    draw_attribute_edges=True, draw_node_list=None):
     global ofdp_image_number
-    free_nodes = list(n for n,d in G.nodes_iter(data=True) if d["type"] == "free")
-    occupied_nodes = list(n for n,d in G.nodes_iter(data=True) if d["type"] == "occupied")
-    nx.draw_networkx_nodes(G, pos, nodelist=free_nodes, node_size=500, node_color="w")
-    nx.draw_networkx_nodes(G, pos, nodelist=occupied_nodes, node_size=500, node_color="b")
-    nx.draw_networkx_labels(G, pos)
-    nx.draw_networkx_edges(G, pos, alpha=0.2, width=1)
-    labels = nx.get_edge_attributes(G, 'weight')
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
+    if draw_free_nodes:
+        free_nodes = list(n for n,d in G.nodes_iter(data=True) if d["type"] == "free")
+        nx.draw_networkx_nodes(G, pos, nodelist=free_nodes, node_size=500, node_color="w")
+        nx.draw_networkx_labels(G, pos, nodelist=free_nodes)
+    if draw_occupied_nodes:
+        occupied_nodes = list(n for n,d in G.nodes_iter(data=True) if d["type"] == "occupied")
+        nx.draw_networkx_nodes(G, pos, nodelist=occupied_nodes, node_size=500, node_color="b")
+        nx.draw_networkx_labels(G, pos, nodelist=occupied_nodes)
+    if draw_node_list is not None:
+        nx.draw_networkx_nodes(G, pos, nodelist=draw_node_list, node_size=500, node_color="w")
+        nx.draw_networkx_labels(G, pos, nodelist=draw_node_list)
+    if draw_edges:
+        nx.draw_networkx_edges(G, pos, alpha=0.2, width=1)
+    if draw_labels:
+        labels = nx.get_edge_attributes(G, 'weight')
+        nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
     if paths:
         path_edges = list((u,v) for u,v in G.edges_iter()
                         if v in G.node[u]["next"] or u in G.node[v]["next"])
         nx.draw_networkx_edges(G, pos, edgelist=path_edges, edge_color="b", width=4)
-    fn_edges = list((u,v) for u,v in G.edges_iter()
-                        if v == G.node[u]["FN_phcr"] or u == G.node[v]["FN_phcr"])
-    nx.draw_networkx_edges(G, pos, edgelist=fn_edges, edge_color="r", width=1)
-    fhb_edges = list((u,v) for u,v in G.edges_iter()
-                        if v == G.node[u]["FHB_phcr"] or u == G.node[v]["FHB_phcr"])
-    nx.draw_networkx_edges(G, pos, edgelist=fhb_edges, edge_color="g", width=1)
-    ohb_edges = list((u,v) for u,v in G.edges_iter()
-                        if v == G.node[u]["OHB_phcr"] or u == G.node[v]["OHB_phcr"])
-    nx.draw_networkx_edges(G, pos, edgelist=ohb_edges, edge_color="yellow", width=1)
+    if draw_attribute_edges:
+        fn_edges = list((u,v) for u,v in G.edges_iter()
+                            if v == G.node[u]["FN_phcr"] or u == G.node[v]["FN_phcr"])
+        nx.draw_networkx_edges(G, pos, edgelist=fn_edges, edge_color="r", width=1)
+        fhb_edges = list((u,v) for u,v in G.edges_iter()
+                            if v == G.node[u]["FHB_phcr"] or u == G.node[v]["FHB_phcr"])
+        nx.draw_networkx_edges(G, pos, edgelist=fhb_edges, edge_color="g", width=1)
+        ohb_edges = list((u,v) for u,v in G.edges_iter()
+                            if v == G.node[u]["OHB_phcr"] or u == G.node[v]["OHB_phcr"])
+        nx.draw_networkx_edges(G, pos, edgelist=ohb_edges, edge_color="yellow", width=1)
     if current:
         nx.draw_networkx_edges(G, pos, edgelist=[current], edge_color="orange", width=4)
     if source is not None:
@@ -75,9 +86,11 @@ def ofdp_finding_sap(G, s, t, draw=False, pos=None, debug=False):
             continue
         if G.node[v]["type"] == "free":
             if debug:
-                print "finding", v, "case 1 dist", dist_u
+                print "finding", u, "->", v, "case 1 dist", dist_u,
             G.node[v]["dist"] = dist_u + G.edge[u][v]["weight"]
             if G.node[v]["dist"] < G.node[v]["FN_dist"]:
+                if debug:
+                    print "changed",
                 G.node[v]["FN_phcr"] = u
                 G.node[v]["FN_dist"] = G.node[v]["dist"]
                 if v == t:
@@ -87,9 +100,11 @@ def ofdp_finding_sap(G, s, t, draw=False, pos=None, debug=False):
                         queue.append((v, n, G.node[v]["dist"]))
         elif G.node[v]["type"] == "occupied" and u not in G.node[v]["prev"] and u not in G.node[v]["next"]:
             if debug:
-                print "finding", v, "case 2 dist", dist_u
+                print "finding", u, "->", v, "case 2 dist", dist_u,
             G.node[v]["dist"] = dist_u + G.edge[u][v]["weight"]
             if G.node[v]["dist"] < G.node[v]["FHB_dist"]:
+                if debug:
+                    print "changed",
                 G.node[v]["FHB_phcr"] = u
                 G.node[v]["FHB_dist"] = G.node[v]["dist"]
                 if v == t:
@@ -97,9 +112,11 @@ def ofdp_finding_sap(G, s, t, draw=False, pos=None, debug=False):
                 queue.append((v, G.node[v]["prev"][0], G.node[v]["dist"]))
         elif G.node[v]["type"] == "occupied" and u in G.node[v]["next"]:
             if debug:
-                print "finding", v, "case 3 dist", dist_u
+                print "finding", u, "->", v, "case 3 dist", dist_u,
             G.node[v]["dist"] = dist_u - G.edge[u][v]["weight"]
             if G.node[v]["dist"] < G.node[v]["OHB_dist"]:
+                if debug:
+                    print "changed",
                 G.node[v]["OHB_phcr"] = u
                 G.node[v]["OHB_dist"] = G.node[v]["dist"]
                 if v == t:
@@ -107,6 +124,8 @@ def ofdp_finding_sap(G, s, t, draw=False, pos=None, debug=False):
                 for n in G.neighbors(v):
                     if n != u:
                         queue.append((v, n, G.node[v]["dist"]))
+        if debug:
+            print ""
     return found
 
 def ofdp_tracing_sap(G, s, t, draw=False, pos=None, debug=False):
@@ -126,10 +145,12 @@ def ofdp_tracing_sap(G, s, t, draw=False, pos=None, debug=False):
         u = msg[0]
         v = msg[1]
         if draw:
-            ofdp_draw_graph(G, pos, "ofdp", paths=True, current=(u,v))
+            ofdp_draw_graph(G, pos, "ofdp", paths=True, current=(u,v), source=s, destination=t,
+                            draw_free_nodes=False, draw_edges=False, draw_labels=False,
+                            draw_attribute_edges=False, draw_node_list=[27,23,8,56,91])
         if v == s:
             if debug:
-                print "tracing", v, "source node"
+                print "tracing", u, "->", v, "source node"
             if G.node[v]["type"] == "free":
                 G.node[v]["type"] = "occupied"
                 G.node[v]["next"] = [u]
@@ -137,26 +158,26 @@ def ofdp_tracing_sap(G, s, t, draw=False, pos=None, debug=False):
                 G.node[v]["next"] += [u]
         elif G.node[v]["type"] == "free":
             if debug:
-                print "tracing", v, "case 1"
+                print "tracing", u, "->", v, "case 1"
             G.node[v]["type"] = "occupied"
             G.node[v]["next"] = [u]
             G.node[v]["prev"] = [G.node[v]["FN_phcr"]]
             queue.append((v, G.node[v]["FN_phcr"]))
         elif G.node[v]["type"] == "occupied" and u not in G.node[v]["prev"]:
             if debug:
-                print "tracing", v, "case 2"
+                print "tracing", u, "->", v, "case 2"
             G.node[v]["next"] = [u]
             queue.append((v, G.node[v]["OHB_phcr"]))
         elif G.node[v]["type"] == "occupied" and u in G.node[v]["prev"] and G.node[v]["FHB_dist"] > G.node[v]["OHB_dist"]:
             if debug:
-                print "tracing", v, "case 3"
+                print "tracing", u, "->", v, "case 3"
             G.node[v]["type"] = "free"
             G.node[v]["prev"] = []
             G.node[v]["next"] = []
             queue.append((v, G.node[v]["OHB_phcr"]))
         elif G.node[v]["type"] == "occupied" and u in G.node[v]["prev"] and G.node[v]["FHB_dist"] <= G.node[v]["OHB_dist"]:
             if debug:
-                print "tracing", v, "case 4"
+                print "tracing", u, "->", v, "case 4"
             G.node[v]["prev"] = [G.node[v]["FHB_phcr"]]
             queue.append((v, G.node[v]["FHB_phcr"]))
 
@@ -181,8 +202,10 @@ def ofdp(G, s, t, k, draw=False, pos=None, debug=False, steps=False):
     i = 0
     while i < k:
         found = ofdp_finding_sap(G, s, t, draw=steps, pos=pos, debug=debug)
-        if steps:
-            ofdp_draw_graph(G, pos, "ofdp")
+        if draw:
+            ofdp_draw_graph(G, pos, "ofdp", source=s, destination=t, paths=True,
+                            draw_free_nodes=False, draw_edges=False, draw_labels=False,
+                            draw_attribute_edges=False, draw_node_list=[27,23,8,56,91])
         # if debug:
         #     for v, d in G.nodes(data=True):
         #         print v, d
