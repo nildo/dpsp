@@ -46,7 +46,7 @@ def calculate_paths(G, origin, destination, algorithm, draw=False, pos=None,
     elif algorithm == "ofdp3":
         result = ofdp3(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     elif algorithm == "ilp":
-        result = ilp(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+        paths = ilp(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     elif algorithm == "dpsp":
         result = dpsp(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     elif algorithm == "yuster":
@@ -58,7 +58,15 @@ def calculate_paths(G, origin, destination, algorithm, draw=False, pos=None,
     elif algorithm == "splitpath":
             result = splitpath(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     else:
-        result = None
+        paths = None
+    result = {}
+    result["algorithm"] = algorithm
+    if paths is not None:
+        result["weight"] = get_paths_weight(paths)
+        result["hops"] = get_paths_hops(paths)
+    else:
+        result["weight"] = None
+        result["hops"] = None
     return result
 
 def main():
@@ -91,9 +99,7 @@ def main():
     algorithms = []
 
     if args.algorithms:
-        algorithm_names = args.algorithms.split("-")
-        for alg in algorithm_names:
-            algorithms.append([alg, None, None])
+        algorithms = args.algorithms.split("-")
 
     if args.input_file.name == "topology":
         generate_adjacency_matrix(args.input_file, "testbed.txt")
@@ -104,7 +110,7 @@ def main():
     if args.output_file is not None:
         args.output_file.write("Instance,Origin,Destination")
         for alg in algorithms:
-            args.output_file.write("," + alg[0] + ",hops_" + alg[0])
+            args.output_file.write("," + alg + ",hops_" + alg)
         args.output_file.write("\n")
 
     instance = 0
@@ -141,32 +147,26 @@ def main():
             # print "destination_range = ", destination_range
             for destination in destination_range:
                 print instance, origin, destination
+                results = []
                 for alg in algorithms:
-                    alg[1] = None
-                    alg[2] = None
-                    paths = None
-                    weight = None
                     copyG = G.copy()
-                    paths = calculate_paths(copyG, origin, destination, alg[0], draw=args.draw, pos=pos, debug=args.debug, steps=args.steps)
-                    if paths:
-                        weight = get_paths_weight(copyG, paths)
-                        alg[1] = weight
-                        hops = get_paths_hops(paths)
-                        alg[2] = hops
-                        # print instance, origin, destination, sorted(paths, key=lambda x: x[1]), weight, alg[0]
-                result = algorithms[0][1]
-                for alg in algorithms:
-                    if alg[1] != result:
+                    result = calculate_paths(copyG, origin, destination, alg, draw=args.draw, pos=pos, debug=args.debug, steps=args.steps)
+                    results.append(result)
+                weight = results[0]["weight"]
+                for result in results:
+                    if result["weight"] != weight:
                         print "Different results found on instance ", instance, origin, destination
-                        print algorithms
+                        print results
                 if args.output_file is not None:
                     args.output_file.write(str(instance) + "," + str(origin) + "," + str(destination))
-                    for alg in algorithms:
-                        args.output_file.write("," + str(alg[1]) + "," + str(alg[2]))
+                    for result in results:
+                        args.output_file.write("," + str(result["weight"]) + "," + str(result["hops"]))
                     args.output_file.write("\n")
                         # return
         # print instance
         instance +=1
+        if "digraph" in graphs_file.name:
+            break
 
 if __name__ == "__main__":
     main()

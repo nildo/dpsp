@@ -20,4 +20,4 @@ rm *.png
 
 # python main.py -i inputs/graph_weighted_100_495 -a ofdp3 -t 0-1-27 -v -d
 # python main.py -i inputs/graph_weighted_100_495 -a ofdp3 -t 0-1-27
-python main.py -i inputs/digraph_weighted_10_13_1 -a ilp -t 0-1-3 -v
+python main.py -i inputs/digraph_weighted_10_13_1 -a ilp -t 0-3-9

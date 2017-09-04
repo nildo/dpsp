@@ -12,22 +12,32 @@ def ilp_initialize(G):
         G.node[v]["prev"] = []
 
 def ilp_get_path(G, s, t, index):
-    path = [s]
-    previous_node = s
-    weight = 0
     if len(G.node[s]["next"]) <= index:
-        return None, 10000
-    current_node = G.node[s]["next"][index][0]
-    current_radio = G.node[s]["next"][index][1] + 1
-    while current_node != t:
-        path.append(current_node)
-        weight += G.edge[previous_node][current_node][current_radio]["weight"]
-        previous_node = current_node
-        current_node = G.node[current_node]["next"][0][0]
-        current_radio = 1 if current_radio == 2 else 2
-    path.append(t)
-    weight += G.edge[previous_node][current_node][current_radio]["weight"]
-    return path, weight
+        return None
+    path = []
+    u = s
+    v = G.node[s]["next"][index][0]
+    radio = G.node[s]["next"][index][1]
+    while v != t:
+        weight = G.edge[u][v][radio]["weight"]
+        edge = {}
+        edge["from"] = u
+        edge["to"] = v
+        edge["radio"] = radio
+        edge["weight"] = weight
+        path.append(edge)
+        u = v
+        v = G.node[v]["next"][0][0]
+        radio = G.node[u]["next"][0][1]
+    return path
+
+def ilp_get_path_weight(path):
+    if path is None:
+        return None
+    w = 0
+    for e in path:
+        w += e["weight"]
+    return w
 
 def ilp_draw_graph(G, pos, filename=None, paths=False, current=None, parity=None, source=None, destination=None):
     global ilp_image_number
@@ -113,15 +123,17 @@ def parse_ilp_output(G, source, destination, file_name):
     text = input_file.read()
     matches = re.search(r"obj = (\d+)", text)
     value = matches.group(1)
+    value = float(value)
     edges = re.findall(r"x(\d)\[(\d+),(\d+)\] *\* *1", text)
     for e in edges:
-        parity = int(e[0]) - 1
+        radio = int(e[0])
         u = int(e[1])
         v = int(e[2])
         G.node[u]["type"] = "occupied"
         G.node[v]["type"] = "occupied"
-        G.node[u]["next"] += [(v, parity)]
-        G.node[v]["prev"] += [(u, parity)]
+        G.node[u]["next"] += [(v, radio)]
+        G.node[v]["prev"] += [(u, radio)]
+    return value
 
 def ilp(G, s, t, k, draw=False, pos=None, debug=False, steps=False):
     model_file_name = "model/shortest_paths_with_parity.mod"
@@ -130,9 +142,17 @@ def ilp(G, s, t, k, draw=False, pos=None, debug=False, steps=False):
     ilp_initialize(G)
     create_data_file(G, s, t, data_file_name)
     solve_ilp_problem(model_file_name, data_file_name, output_file_name)
-    parse_ilp_output(G, s, t, output_file_name)
-    path1, w1 = ilp_get_path(G, s, t, 0)
-    path2, w2 = ilp_get_path(G, s, t, 1)
+    weight = parse_ilp_output(G, s, t, output_file_name)
+    if weight >= 10000:
+        return None
+    path1 = ilp_get_path(G, s, t, 0)
+    path2 = ilp_get_path(G, s, t, 1)
+    w1 = ilp_get_path_weight(path1)
+    w2 = ilp_get_path_weight(path2)
+    if w1 is not None and w1 >= 10000:
+        path1 = None
+    if w2 is not None and w2 >= 10000:
+        path2 = None
     if debug:
         print path1, w1
         print path2, w2

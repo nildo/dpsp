@@ -168,19 +168,19 @@ def create_adjacency_matrix_from_digraph(G, output_file):
             else:
                 output_file.write("\n")
 
-def get_paths_weight(G, paths):
-    result = 0
+def get_paths_weight(paths):
+    total = 0
     for path in paths:
         if type(path) is not list:
-            return 0
-        for i in range(len(path)-1):
-            result += G.edge[path[i]][path[i+1]]["weight"]
-    return result
+            return None
+        for edge in path:
+            total += edge["weight"]
+    return total
 
 def get_paths_hops(paths):
     result = 0
     for path in paths:
-        result += len(path)-1
+        result += len(path)
     return result
 
 def ncr(n, r):
