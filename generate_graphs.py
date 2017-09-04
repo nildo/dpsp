@@ -63,11 +63,12 @@ def generate_random_multidigraph(n, v, e):
     add_digraph_exponential_weights(unweighted_file_2, weighted_file_2)
 
 def main():
-    for i in range(10, 110, 10):
+    for i in range(10, 100, 20):
         print i
-        v = i
+        v = 100
+        p = i
         total = ncr(v, 2)
-        e = total * 30/100
+        e = total * p/100
         generate_random_multidigraph(1, v, e)
 
 if __name__ == "__main__":

@@ -19,24 +19,21 @@ def ilp_get_path(G, s, t, index):
     v = G.node[s]["next"][index][0]
     radio = G.node[s]["next"][index][1]
     while v != t:
-        weight = G.edge[u][v][radio]["weight"]
-        edge = {}
-        edge["from"] = u
-        edge["to"] = v
-        edge["radio"] = radio
-        edge["weight"] = weight
-        path.append(edge)
+        d = G.edge[u][v][radio]
+        path.append((u,v,radio,d))
         u = v
         v = G.node[v]["next"][0][0]
         radio = G.node[u]["next"][0][1]
+    d = G.edge[u][v][radio]
+    path.append((u,v,radio,d))
     return path
 
 def ilp_get_path_weight(path):
     if path is None:
         return None
     w = 0
-    for e in path:
-        w += e["weight"]
+    for u,v,k,d in path:
+        w += d["weight"]
     return w
 
 def ilp_draw_graph(G, pos, filename=None, paths=False, current=None, parity=None, source=None, destination=None):
@@ -51,8 +48,8 @@ def ilp_draw_graph(G, pos, filename=None, paths=False, current=None, parity=None
     nx.draw_networkx_nodes(G, pos, nodelist=destination_node, node_size=500, node_color="#ff4d4d")
     nx.draw_networkx_labels(G, pos)
     nx.draw_networkx_edges(G, pos, alpha=0.2, width=1)
-    labels = nx.get_edge_attributes(G, 'weight')
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
+    # labels = nx.get_edge_attributes(G, 'weight')
+    # nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
     if paths:
         path_edges_0 = list((u,v) for u,v in G.edges_iter()
                         if (v, 0) in G.node[u]["next"] or (u, 0) in G.node[v]["next"])

@@ -42,21 +42,21 @@ def get_positions(positions_file):
 def calculate_paths(G, origin, destination, algorithm, draw=False, pos=None,
                     debug=False, steps=False):
     if algorithm == "ofdp":
-        result = ofdp(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+        paths = ofdp(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     elif algorithm == "ofdp3":
-        result = ofdp3(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+        paths = ofdp3(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     elif algorithm == "ilp":
         paths = ilp(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     elif algorithm == "dpsp":
-        result = dpsp(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+        paths = dpsp(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     elif algorithm == "yuster":
-        result = yuster(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+        paths = yuster(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     elif algorithm == "twofast":
-        result = twofast(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+        paths = twofast(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     elif algorithm == "oddcycle":
-        result = oddcycle(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+        paths = oddcycle(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     elif algorithm == "splitpath":
-            result = splitpath(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+        paths = splitpath(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     else:
         paths = None
     result = {}

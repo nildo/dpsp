@@ -173,8 +173,8 @@ def get_paths_weight(paths):
     for path in paths:
         if type(path) is not list:
             return None
-        for edge in path:
-            total += edge["weight"]
+        for u,v,k,d in path:
+            total += d["weight"]
     return total
 
 def get_paths_hops(paths):

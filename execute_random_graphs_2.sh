@@ -6,11 +6,11 @@
 
 for if in inputs/digraph_weighted_100_*_1;
 do
-  of=${if/inputs/outputs}.csv
+  of=${if/inputs/outputs}_test.csv
   if [ ! -f "$of" ];
   then
     echo "Executing with -i $if -o $of"
-    python main.py -i $if -o $of -a ilp-splitpath
+    python main.py -i $if -o $of -a ilp
   else
     echo "File $of already exists"
   fi

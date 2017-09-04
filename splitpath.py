@@ -6,18 +6,28 @@ from pprint import pprint
 splitpath_image_number = 1
 
 def splitpath_get_path(G, s, t, index):
-    path = [s]
-    current_node = G.node[s]["next"][index]
-    index = (index+1) % 2
-    while current_node != t and current_node is not None:
-        path.append(current_node)
-        current_node = G.node[current_node]["next"][index]
+    path = []
+    u = s
+    v = G.node[s]["next"][index]
+    while v != t and v is not None:
+        d = G.edge[u][v][index+1]
+        path.append((u,v,index+1,d))
         index = (index+1) % 2
-    path.append(t)
-    if current_node is not None:
+        u = v
+        v = G.node[v]["next"][index]
+    if v is not None:
+        d = G.edge[u][v][index+1]
+        path.append((u,v,index+1,d))
         return path
     else:
         return None
+
+def splitpath_get_paths_weight(paths):
+    total = 0
+    for path in paths:
+        for u,v,k,d in path:
+            total += d["weight"]
+    return total
 
 def splitpath_parity(G):
     path_edges = list((u,v) for u,v in G.edges_iter()
@@ -32,8 +42,8 @@ def splitpath_draw_graph(G, pos, filename=None, paths=False, current=None, sourc
     nx.draw_networkx_nodes(G, pos, nodelist=occupied_nodes, node_size=500, node_color="b")
     nx.draw_networkx_labels(G, pos)
     nx.draw_networkx_edges(G, pos, alpha=0.2, width=1)
-    labels = nx.get_edge_attributes(G, 'weight')
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
+    # labels = nx.get_edge_attributes(G, 'weight')
+    # nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
     if paths:
         path_edges = list((u,v) for u,v in G.edges_iter()
                         if v in G.node[u]["next"] or u in G.node[v]["next"])
@@ -56,9 +66,9 @@ def splitpath_draw_graph(G, pos, filename=None, paths=False, current=None, sourc
 
 def splitpath_finding_sap(G, s, t, radio, draw=False, pos=None, debug=False):
     queue = deque()
-    found = False
     for n in G.neighbors(s):
-        queue.append((s, n, 0, 0, []))
+        if G.has_edge(s, n, radio+1):
+            queue.append((s, n, radio, 0, []))
     while queue:
         msg = queue.popleft()
         u = msg[0]
@@ -93,9 +103,9 @@ def splitpath_finding_sap(G, s, t, radio, draw=False, pos=None, debug=False):
 
         dist = 10000
         if G.node[v]["type"] == "occupied" and u in G.node[v]["next"]:
-            dist = dist_u - G.edge[u][v]["weight"]
+            dist = dist_u - G.edge[u][v][radio+1]["weight"]
         else:
-            dist = dist_u + G.edge[u][v]["weight"]
+            dist = dist_u + G.edge[u][v][radio+1]["weight"]
 
         if dist < G.node[v]["dist"][radio]:
             G.node[v]["dist"][radio] = dist
@@ -107,31 +117,34 @@ def splitpath_finding_sap(G, s, t, radio, draw=False, pos=None, debug=False):
                     n = G.node[v]["next"][0]
                     if n is None:
                         n = G.node[v]["next"][1]
-                    queue.append((v, n, send_radio, dist, send_path))
+                    if G.has_edge(v, n, send_radio+1):
+                        queue.append((v, n, send_radio, dist, send_path))
                 else:
                     for n in G.neighbors(v):
-                        queue.append((v, n, send_radio, dist, send_path))
-    return found
+                        if G.has_edge(v, n, send_radio+1):
+                            queue.append((v, n, send_radio, dist, send_path))
 
-def splitpath_tracing_sap(G, s, t, radio, draw=False, pos=None, debug=False):
+def splitpath_tracing_sap(G, s, t, radio, path_number, draw=False, pos=None, debug=False):
     queue = deque()
 
-    if G.node[t]["prev"][0] == G.node[t]["prev"][1] == None:
-        path_number = 0
-        if G.node[t]["dist"][0] <= G.node[t]["dist"][1]:
-            send_radio = 0
-        else:
-            send_radio = 1
-    elif G.node[t]["prev"][0] is not None and G.node[t]["prev"][1] is None:
-        path_number = 1
-        send_radio = 0
-    elif G.node[t]["prev"][0] is None and G.node[t]["prev"][1] is not None:
-        path_number = 1
-        send_radio = 1
-    else:
-        if debug:
-            print "Error in tracing"
-        return
+    # if G.node[t]["prev"][0] == G.node[t]["prev"][1] == None:
+    #     path_number = 0
+    #     if G.node[t]["dist"][0] <= G.node[t]["dist"][1]:
+    #         send_radio = 0
+    #     else:
+    #         send_radio = 1
+    # elif G.node[t]["prev"][0] is not None and G.node[t]["prev"][1] is None:
+    #     path_number = 1
+    #     send_radio = 0
+    # elif G.node[t]["prev"][0] is None and G.node[t]["prev"][1] is not None:
+    #     path_number = 1
+    #     send_radio = 1
+    # else:
+    #     if debug:
+    #         print "Error in tracing"
+    #     return
+
+    send_radio = radio
 
     if G.node[t]["dist"][send_radio] == 10000:
         if debug:
@@ -142,8 +155,10 @@ def splitpath_tracing_sap(G, s, t, radio, draw=False, pos=None, debug=False):
     G.node[t]["prev"][send_radio] = G.node[t]["path"][send_radio][-1]
     G.node[t]["current_path_number"] = path_number
     for n in G.neighbors(t):
-        queue.append((t, n, 0, path_number, G.node[t]["path"][send_radio] + [t]))
-        queue.append((t, n, 1, path_number, G.node[t]["path"][send_radio] + [t]))
+        if G.has_edge(t, n, 0+1):
+            queue.append((t, n, 0, path_number, G.node[t]["path"][send_radio] + [t]))
+        if G.has_edge(t, n, 1+1):
+            queue.append((t, n, 1, path_number, G.node[t]["path"][send_radio] + [t]))
 
     while queue:
         msg = queue.popleft()
@@ -167,13 +182,17 @@ def splitpath_tracing_sap(G, s, t, radio, draw=False, pos=None, debug=False):
         if debug:
             print "tracing", u, "->", v, path
 
+
         if v in path:
             i = path.index(v)
-            re = (path_number + i + 1) % 2
-            rs = (path_number + i) % 2
+            re = (path_number + i + 1) % 2 # in radio
+            rs = (path_number + i) % 2 # out radio
             prevn = path[i-1]
             nextn = path[i+1]
-            if nextn in G.node[v]["prev"] and prevn in G.node[v]["next"]:
+            if v == s:
+                G.node[v]["next"][rs] = nextn
+                G.node[v]["type"] = "occupied"
+            elif nextn in G.node[v]["prev"] and prevn in G.node[v]["next"]:
                 G.node[v]["prev"] = [None, None]
                 G.node[v]["next"] = [None, None]
                 G.node[v]["type"] = "free"
@@ -189,8 +208,10 @@ def splitpath_tracing_sap(G, s, t, radio, draw=False, pos=None, debug=False):
                 G.node[v]["type"] = "occupied"
 
         for n in G.neighbors(v):
-            queue.append((v, n, 0, path_number, path))
-            queue.append((v, n, 1, path_number, path))
+            if G.has_edge(v, n, 0+1):
+                queue.append((v, n, 0, path_number, path))
+            if G.has_edge(v, n, 1+1):
+                queue.append((v, n, 1, path_number, path))
 
 
 def splitpath(G, s, t, k, draw=False, pos=None, debug=False, steps=False):
@@ -204,35 +225,57 @@ def splitpath(G, s, t, k, draw=False, pos=None, debug=False, steps=False):
         for v in G.nodes():
             G.node[v]["dist"] = [10000,10000]
             G.node[v]["path"] = [[], []]
-    if draw and not pos:
-        pos = nx.spring_layout(G)
-    initialize()
-    reset()
-    i = 0
-    while i < 2:
-        splitpath_finding_sap(G, s, t, i%2, draw=steps, pos=pos, debug=debug)
-        if debug:
-            for n, d in G.nodes_iter(data=True):
-                print n
-                pprint(d)
-        splitpath_tracing_sap(G, s, t, i%2, draw=steps, pos=pos, debug=debug)
-        if debug:
-            for n, d in G.nodes_iter(data=True):
-                print n
-                pprint(d)
+
+    def phase(fp, tp):
+        initialize()
         reset()
-        i += 1
+        i = 0
+        while i < 2:
+            splitpath_finding_sap(G, s, t, fp[i], draw=steps, pos=pos, debug=debug)
+            if debug:
+                print "after finding", i
+                for n, d in G.nodes_iter(data=True):
+                    print n
+                    pprint(d)
+            splitpath_tracing_sap(G, s, t, tp[i], i, draw=steps, pos=pos, debug=debug)
+            if debug:
+                print "after tracing", i
+                for n, d in G.nodes_iter(data=True):
+                    print n
+                    pprint(d)
+            reset()
+            i += 1
+            if draw:
+                splitpath_draw_graph(G, pos, "splitpath", paths=True, source=s, destination=t)
+        paths = []
+        for count in range(i):
+            path = splitpath_get_path(G, s, t, count)
+            if path is not None:
+                paths.append(path)
         if draw:
             splitpath_draw_graph(G, pos, "splitpath", paths=True, source=s, destination=t)
+        if len(paths) == 2:
+            return paths
+        else:
+            return None
 
-    paths = []
-    for count in range(i):
-        path = splitpath_get_path(G, s, t, count)
-        if path is not None:
-            paths.append(path)
-    if draw:
-        splitpath_draw_graph(G, pos, "splitpath", paths=True, source=s, destination=t)
-    if len(paths) == 2:
-        return paths
-    else:
+
+    if draw and not pos:
+        pos = nx.spring_layout(G)
+
+    paths1 = phase(fp=[0,1], tp=[1,0])
+    paths2 = phase(fp=[0,1], tp=[0,1])
+
+    if paths1 is None and paths2 is None:
         return None
+    elif paths1 is not None and paths2 is None:
+        return paths1
+    elif paths1 is None and paths2 is not None:
+        return paths2
+    else:
+        w1 = splitpath_get_paths_weight(paths1)
+        w2 = splitpath_get_paths_weight(paths2)
+        if w1 >= w2:
+            return paths1
+        else:
+            return paths2
