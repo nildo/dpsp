@@ -1,8 +1,18 @@
 import csv
 from pprint import pprint
+from math import sqrt
 
+def standard_deviation(lst):
+    num_items = len(lst)
+    mean = sum(lst) / num_items
+    differences = [x - mean for x in lst]
+    sq_differences = [d ** 2 for d in differences]
+    ssd = sum(sq_differences)
+    variance = ssd / num_items
+    sd = sqrt(variance)
+    return sd
 
-def print_statistics(input_file_name):
+def print_statistics(input_file_name, output_file=None):
     with open(input_file_name) as csvfile:
         reader = csv.DictReader(csvfile)
 
@@ -71,9 +81,25 @@ def print_statistics(input_file_name):
     print general_counter, ilp_counter, splitpath_counter,
     print float(splitpath_counter) / ilp_counter * 100,
     if len(splitpath_diff) > 0:
-        print sum(splitpath_diff) / len(splitpath_diff) * 100
+        print sum(splitpath_diff) / len(splitpath_diff) * 100,
     else:
-        print 0
+        print 0,
+    print standard_deviation(splitpath_diff)
+
+def get_error_list(input_file_name):
+    error_list = []
+    with open(input_file_name) as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            ilp = row["ilp"]
+            splitpath = row["splitpath"]
+            if ilp != "None" and splitpath != "None":
+                ilp = float(ilp)
+                splitpath = float(splitpath)
+                error = (splitpath - ilp)/ilp
+                error_list.append(error)
+    return error_list
+
 
 def main():
     # filenames = ["outputs/graph_weighted_100_495.csv",
@@ -81,8 +107,7 @@ def main():
     #              "outputs/graph_weighted_100_2475.csv",
     #              "outputs/graph_weighted_100_3465.csv",
     #              "outputs/graph_weighted_100_4455.csv"]
-    filenames = ["outputs/digraph_weighted_100_1485_1.csv",
-                "outputs/digraph_weighted_10_13_1.csv",
+    filenames = ["outputs/digraph_weighted_10_13_1.csv",
                 "outputs/digraph_weighted_20_57_1.csv",
                 "outputs/digraph_weighted_30_130_1.csv",
                 "outputs/digraph_weighted_40_234_1.csv",
@@ -90,9 +115,24 @@ def main():
                 "outputs/digraph_weighted_60_531_1.csv",
                 "outputs/digraph_weighted_70_724_1.csv",
                 "outputs/digraph_weighted_80_948_1.csv",
-                "outputs/digraph_weighted_90_1201_1.csv"]
-    for filename in filenames:
-        print_statistics(filename)
+                "outputs/digraph_weighted_90_1201_1.csv",
+                "outputs/digraph_weighted_100_1485_1.csv"]
+    # filenames = ["outputs/digraph_weighted_100_1485_1.csv",
+    #             "outputs/digraph_weighted_100_2475_1.csv",
+    #             "outputs/digraph_weighted_100_3465_1.csv",
+    #             "outputs/digraph_weighted_100_4455_1.csv",
+    #             "outputs/digraph_weighted_100_495_1.csv"]
+    # labels = ["10%", "30%", "50%", "70%", "90%"]
+    labels = ["10", "20", "30", "40", "50", "60", "70", "80", "90", "100"]
+
+    output_file = open("data-heuristic-multidigraphs-size.tsv", "w")
+    for i in range(len(filenames)):
+        filename = filenames[i]
+        label = labels[i]
+        # print_statistics(filename, output_file)
+        error_list = get_error_list(filename)
+        for error in error_list:
+            output_file.write("\"" + label + "\"\t" + str(error) + "\n")
 
 if __name__ == "__main__":
     main()

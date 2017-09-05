@@ -4,7 +4,7 @@
 # python main.py -i inputs/graph_weighted_100_3465 -o outputs/graph_weighted_100_3465.csv -a ilp-splitpath-ofdp3
 # python main.py -i inputs/graph_weighted_100_4455 -o outputs/graph_weighted_100_4455.csv -a ilp-splitpath-ofdp3
 
-for if in inputs/digraph_weighted_100_*_1;
+for if in inputs/digraph_weighted_*_1;
 do
   of=${if/inputs/outputs}_test.csv
   if [ ! -f "$of" ];
