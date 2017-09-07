@@ -159,7 +159,7 @@ def generate_adjacency_matrix(input_file, output_file_name):
         output_file.write("\n")
     output_file.close()
 
-def create_multidigraph(input_file):
+def create_multidigraph_from_topology(input_file):
     log = read_log_file(input_file, ["uint16_t", "uint16_t", "uint8_t", "uint16_t"])
     nodes = get_nodes(log)
     links1 = get_links(log, 1)

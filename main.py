@@ -15,6 +15,7 @@ from twofast import twofast
 from oddcycle import oddcycle
 from splitpath import splitpath
 from create_data_file import generate_adjacency_matrix
+from create_data_file import create_multidigraph_from_topology
 from utils import *
 
 def create_graph(input_file):
@@ -45,8 +46,18 @@ def calculate_paths(G, origin, destination, algorithm, draw=False, pos=None,
         paths = ofdp(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     elif algorithm == "ofdp3":
         paths = ofdp3(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
-    elif algorithm == "ilp":
-        paths = ilp(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+    elif "ilp" in algorithm:
+        if "gr" in algorithm:
+            G2 = md_to_gr(G)
+            paths = ilp(G2, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+        elif "di" in algorithm:
+            G2 = md_to_di(G)
+            paths = ilp(G2, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+        elif "mg" in algorithm:
+            G2 = md_to_mg(G)
+            paths = ilp(G2, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+        else:
+            paths = ilp(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     elif algorithm == "dpsp":
         paths = dpsp(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     elif algorithm == "yuster":
@@ -55,8 +66,18 @@ def calculate_paths(G, origin, destination, algorithm, draw=False, pos=None,
         paths = twofast(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     elif algorithm == "oddcycle":
         paths = oddcycle(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
-    elif algorithm == "splitpath":
-        paths = splitpath(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+    elif "splitpath" in algorithm:
+        if "gr" in algorithm:
+            G2 = md_to_gr(G)
+            paths = splitpath(G2, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+        elif "di" in algorithm:
+            G2 = md_to_di(G)
+            paths = splitpath(G2, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+        elif "mg" in algorithm:
+            G2 = md_to_mg(G)
+            paths = splitpath(G2, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+        else:
+            paths = splitpath(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     else:
         paths = None
     result = {}
@@ -101,22 +122,20 @@ def main():
     if args.algorithms:
         algorithms = args.algorithms.split("-")
 
-    if args.input_file.name == "topology":
-        generate_adjacency_matrix(args.input_file, "testbed.txt")
-        graphs_file = open("testbed.txt", "r")
-    else:
-        graphs_file = args.input_file
-
     if args.output_file is not None:
         args.output_file.write("Instance,Origin,Destination")
         for alg in algorithms:
             args.output_file.write("," + alg + ",hops_" + alg)
         args.output_file.write("\n")
 
+    graphs_file = args.input_file
+
     instance = 0
     while graphs_file:
         if "digraph" in graphs_file.name:
             G = create_multidigraph_from_adjacency_matrix(graphs_file)
+        elif "topology" in graphs_file.name:
+            G = create_multidigraph_from_topology(graphs_file)
         else:
             G = create_graph_from_adjacency_matrix(graphs_file)
         if not G:
@@ -134,17 +153,20 @@ def main():
         if selected_origin is not None:
             origin_range = [selected_origin]
         else:
-            origin_range = range(G.number_of_nodes())
-        # print "origin_range = ", origin_range
+            origin_range = G.nodes()
         for origin in origin_range:
             if selected_destination is not None:
                 destination_range = [selected_destination]
             else:
                 destination_range = []
-                for n in nx.non_neighbors(G, origin):
-                    if n > origin:
+                # # For non_neighbors in undirected graphs
+                # for n in nx.non_neighbors(G, origin):
+                #     if n > origin:
+                #         destination_range.append(n)
+                # For all neighbors in directed graphs_file
+                for n in G.nodes():
+                    if n != origin:
                         destination_range.append(n)
-            # print "destination_range = ", destination_range
             for destination in destination_range:
                 print instance, origin, destination
                 results = []
@@ -165,7 +187,7 @@ def main():
                         # return
         # print instance
         instance +=1
-        if "digraph" in graphs_file.name:
+        if "digraph" in graphs_file.name or "topology" in graphs_file.name:
             break
 
 if __name__ == "__main__":

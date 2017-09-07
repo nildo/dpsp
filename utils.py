@@ -189,3 +189,46 @@ def ncr(n, r):
     numer = reduce(op.mul, xrange(n, n-r, -1))
     denom = reduce(op.mul, xrange(1, r+1))
     return numer//denom
+
+def md_to_di(Q):
+    D = nx.MultiDiGraph()
+    for u,v,k,d in Q.edges_iter(keys=True, data=True):
+        kb = 1 if k == 2 else 2
+        if Q.has_edge(u,v,kb):
+            if d["weight"] > Q.edge[u][v][kb]["weight"]:
+                D.add_edge(u,v,k,d)
+                D.add_edge(u,v,kb,d)
+            else:
+                D.add_edge(u,v,k,Q.edge[u][v][kb])
+                D.add_edge(u,v,kb,Q.edge[u][v][kb])
+    return D
+
+def md_to_mg(Q):
+    M = nx.MultiDiGraph()
+    for u,v,k,d in Q.edges_iter(keys=True, data=True):
+        if Q.has_edge(v,u,k):
+            if d["weight"] > Q.edge[v][u][k]["weight"]:
+                M.add_edge(u,v,k,d)
+                M.add_edge(v,u,k,d)
+            else:
+                M.add_edge(u,v,k,Q.edge[v][u][k])
+                M.add_edge(v,u,k,Q.edge[v][u][k])
+    return M
+
+def md_to_gr(Q):
+    G = nx.MultiDiGraph()
+    D = md_to_di(Q)
+    for u,v,k,d in D.edges_iter(keys=True, data=True):
+        kb = 1 if k == 2 else 2
+        if D.has_edge(v,u,k):
+            if d["weight"] > D.edge[v][u][k]["weight"]:
+                G.add_edge(u,v,k,d)
+                G.add_edge(v,u,k,d)
+                G.add_edge(u,v,kb,d)
+                G.add_edge(v,u,kb,d)
+            else:
+                G.add_edge(u,v,k,D.edge[v][u][k])
+                G.add_edge(v,u,k,D.edge[v][u][k])
+                G.add_edge(u,v,kb,D.edge[v][u][k])
+                G.add_edge(v,u,kb,D.edge[v][u][k])
+    return G
