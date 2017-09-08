@@ -232,3 +232,12 @@ def md_to_gr(Q):
                 G.add_edge(u,v,kb,D.edge[v][u][k])
                 G.add_edge(v,u,kb,D.edge[v][u][k])
     return G
+
+def gr_to_md(G):
+    Q = nx.MultiDiGraph()
+    for u,v,d in G.edges_iter(data=True):
+        Q.add_edge(u,v,1,d)
+        Q.add_edge(v,u,1,d)
+        Q.add_edge(u,v,2,d)
+        Q.add_edge(v,u,2,d)
+    return Q

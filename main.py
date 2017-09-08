@@ -56,6 +56,9 @@ def calculate_paths(G, origin, destination, algorithm, draw=False, pos=None,
         elif "mg" in algorithm:
             G2 = md_to_mg(G)
             paths = ilp(G2, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+        elif "md" in algorithm:
+            G2 = gr_to_md(G)
+            paths = ilp(G2, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
         else:
             paths = ilp(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     elif algorithm == "dpsp":
@@ -75,6 +78,9 @@ def calculate_paths(G, origin, destination, algorithm, draw=False, pos=None,
             paths = splitpath(G2, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
         elif "mg" in algorithm:
             G2 = md_to_mg(G)
+            paths = splitpath(G2, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+        elif "md" in algorithm:
+            G2 = gr_to_md(G)
             paths = splitpath(G2, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
         else:
             paths = splitpath(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)

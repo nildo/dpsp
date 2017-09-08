@@ -25,4 +25,5 @@ rm *.png
 # python main.py -i inputs/digraph_weighted_20_57_1 -a ilp-splitpath
 # python main.py -i inputs/digraph_weighted_30_130_1 -a ilp-splitpath
 # python main.py -i topology -a ilp-splitpath -o outputs/testbed-evaluation.csv
-python main.py -i topology -a ilp-splitpathmg-splitpathdi-splitpathgr -o outputs/testbed-evaluation-sps.csv
+# python main.py -i topology -a ilp-splitpathmg-splitpathdi-splitpathgr -o outputs/testbed-evaluation-sps.csv
+python main.py -i topology -a ilp-ilpmg-ilpdi-ilpgr -o outputs/model-evaluation-all-2.csv
