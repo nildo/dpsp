@@ -156,6 +156,7 @@ def model_evaluation(input_file_name, output_file=None):
     print sp_md_count, sp_mg_count, sp_di_count, sp_gr_count
     print md_count, mg_count, di_count, gr_count
 
+
 def main():
     # filenames = ["outputs/graph_weighted_100_495.csv",
     #              "outputs/graph_weighted_100_1485.csv",
