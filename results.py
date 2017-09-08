@@ -158,42 +158,43 @@ def splitpath_evaluation(input_file_name, output_file=None):
         gr_count = 0
         for row in reader:
             ilp = to_float(row["ilp"])
-            md = to_float(row["splitpath"])
-            # mg = to_float(row["splitpathmg"])
-            # di = to_float(row["splitpathdi"])
-            # gr = to_float(row["splitpathgr"])
+            # md = to_float(row["splitpath"])
+            mg = to_float(row["splitpathmg"])
+            di = to_float(row["splitpathdi"])
+            gr = to_float(row["splitpathgr"])
             if ilp is not None:
                 ilp_count += 1
-                if md is not None:
-                    err = (ilp - md) / ilp
-                    output_file.write("Multidigraph\t" + str(err) + "\n")
+                # if md is not None:
+                #     err = (md - ilp) / ilp
+                #     output_file.write("Multidigraph\t" + str(err) + "\n")
+                #     if err == 0:
+                #         md_count += 1
+                if mg is not None:
+                    err = (mg - ilp) / ilp
+                    output_file.write("Multigraph\t" + str(err) + "\n")
                     if err == 0:
-                        md_count += 1
-                # if mg is not None:
-                #     err = (mg - ilp) / ilp
-                #     output_file.write("Multigraph\t" + str(err) + "\n")
-                #     if err == 0:
-                #         mg_count += 1
-                # # else:
-                # #     mg_count += 1
-                # if di is not None:
-                #     err = (di - ilp) / ilp
-                #     output_file.write("Digraph\t" + str(err) + "\n")
-                #     if err == 0:
-                #         di_count += 1
-                # # else:
-                # #     di_count += 1
-                # if gr is not None:
-                #     err = (gr - ilp) / ilp
-                #     output_file.write("Graph\t" + str(err) + "\n")
-                #     if err == 0:
-                #         gr_count += 1
+                        mg_count += 1
+                # else:
+                #     mg_count += 1
+                if di is not None:
+                    err = (di - ilp) / ilp
+                    output_file.write("Digraph\t" + str(err) + "\n")
+                    if err == 0:
+                        di_count += 1
+                # else:
+                #     di_count += 1
+                if gr is not None:
+                    err = (gr - ilp) / ilp
+                    output_file.write("Graph\t" + str(err) + "\n")
+                    if err == 0:
+                        gr_count += 1
                 # else:
                 #     gr_count += 1
         # print md_count, mg_count, di_count, gr_count
         # print float(mg_count)/md_count, float(di_count)/md_count, float(gr_count)/md_count
-        print ilp_count, md_count#, mg_count, di_count, gr_count
-        print float(md_count)/ilp_count#, float(mg_count)/ilp_count, float(di_count)/ilp_count, float(gr_count)/ilp_count
+        print ilp_count, mg_count, di_count, gr_count
+        # print float(md_count)/ilp_count
+        print float(mg_count)/ilp_count, float(di_count)/ilp_count, float(gr_count)/ilp_count
 
 
 
@@ -220,8 +221,8 @@ def main():
     #             "outputs/digraph_weighted_100_495_1.csv"]
     # labels = ["10%", "30%", "50%", "70%", "90%"]
     # labels = ["10", "20", "30", "40", "50", "60", "70", "80", "90", "100"]
-    filenames=["outputs/model-evaluation-all.csv"]
-    output_file = open("data-splitpath-evaluation-all.tsv", "w")
+    filenames=["outputs/testbed-evaluation-sps.csv"]
+    output_file = open("data-heuristic-evaluation-sps.tsv", "w")
     for i in range(len(filenames)):
         filename = filenames[i]
         # label = labels[i]
