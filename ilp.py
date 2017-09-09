@@ -52,11 +52,11 @@ def ilp_draw_graph(G, pos, filename=None, paths=False, current=None, parity=None
     # nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
     if paths:
         path_edges_0 = list((u,v) for u,v in G.edges_iter()
-                        if (v, 0) in G.node[u]["next"] or (u, 0) in G.node[v]["next"])
+                        if (v, 1) in G.node[u]["next"])
         nx.draw_networkx_edges(G, pos, edgelist=path_edges_0, edge_color="#000099", width=4)
         # nx.draw_networkx_edges(G, pos, edgelist=path_edges_0, edge_color="#6666ff", width=4)
         path_edges_1 = list((u,v) for u,v in G.edges_iter()
-                        if (v, 1) in G.node[u]["next"] or (u, 1) in G.node[v]["next"])
+                        if (v, 2) in G.node[u]["next"])
         # nx.draw_networkx_edges(G, pos, edgelist=path_edges_1, edge_color="#000099", width=4)
         nx.draw_networkx_edges(G, pos, edgelist=path_edges_1, edge_color="#6666ff", width=4)
     if current:

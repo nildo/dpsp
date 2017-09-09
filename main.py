@@ -4,6 +4,7 @@ import argparse
 import networkx as nx
 import matplotlib.pyplot as plt
 from collections import deque
+from pprint import pprint
 from ofdp import ofdp
 from ofdp3 import ofdp3
 from ofdpex import ofdpex
@@ -34,7 +35,7 @@ def get_positions(positions_file):
     pos = {}
     for line in lines:
         values = line.split()
-        node = values[0]
+        node = int(values[0])
         x = float(values[1])
         y = float(values[2])
         pos[node] = (x,y)
