@@ -69,3 +69,12 @@ def printg(G):
             print "  ", v, " ",
             pprint(G.edge[u][v])
         print ""
+
+def graph_to_multidigraph(G):
+    Q = nx.MultiDiGraph()
+    for u,v,d in G.edges_iter(data=True):
+        Q.add_edge(u,v,0,d)
+        Q.add_edge(u,v,1,d)
+        Q.add_edge(v,u,0,d)
+        Q.add_edge(v,u,1,d)
+    return Q

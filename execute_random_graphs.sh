@@ -1,10 +1,10 @@
 
-# python main.py -i inputs/rand_100_10pc -o outputs/rand_100_10pc.csv -a ilp-splitpath-ofdp3
+python main.py -i inputs/graph_weighted_100_495 -o outputs/new_graph_weighted_100_495.csv -a ilp-splitpath-ofdp3
 
-python main.py -i inputs/rand_100_30pc -o outputs/rand_100_30pc.csv -a ilp-splitpath-ofdp3
-
-python main.py -i inputs/rand_100_50pc -o outputs/rand_100_50pc.csv -a ilp-splitpath-ofdp3
-
-python main.py -i inputs/rand_100_70pc -o outputs/rand_100_70pc.csv -a ilp-splitpath-ofdp3
-
-python main.py -i inputs/rand_100_90pc -o outputs/rand_100_90pc.csv -a ilp-splitpath-ofdp3
+# python main.py -i inputs/graph_weighted_100_1485 -o outputs/new_graph_weighted_100_1485.csv -a ilp-splitpath-ofdp3
+#
+# python main.py -i inputs/graph_weighted_100_2475 -o outputs/new_graph_weighted_100_2475.csv -a ilp-splitpath-ofdp3
+#
+# python main.py -i inputs/graph_weighted_100_3465 -o outputs/new_graph_weighted_100_3465.csv -a ilp-splitpath-ofdp3
+#
+# python main.py -i inputs/graph_weighted_100_4455 -o outputs/new_graph_weighted_100_4455.csv -a ilp-splitpath-ofdp3

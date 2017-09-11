@@ -16,4 +16,6 @@ rm *.png
 # python main.py -i inputs/graphs$1 -a ilp-splitpath -t 155-0-7 -v -d
 # python main.py -i inputs/graphs$1 -a ilp-splitpath
 
-python main.py -i topology -a ofdp-ilp-splitpath-ofdp3 -o results_4.csv
+# python main.py -i topology -a ofdp-ilp-splitpath-ofdp3 -o results_4.csv
+
+python main.py -i inputs/graph_weighted_100_495 -o outputs/new_graph_weighted_100_495.csv -a splitpath-splitpathmd -t 0-14-83 -v -d

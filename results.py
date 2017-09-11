@@ -3,7 +3,7 @@ from pprint import pprint
 
 
 def main():
-    with open("outputs/rand_100_30pc.csv") as csvfile:
+    with open("outputs/new_graph_weighted_100_495.csv") as csvfile:
         reader = csv.DictReader(csvfile)
 
         general_counter = 0

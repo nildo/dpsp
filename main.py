@@ -14,7 +14,10 @@ from yuster import yuster
 from twofast import twofast
 from oddcycle import oddcycle
 from splitpath import splitpath
+from splitpathmd import splitpathmd
 from create_data_file import generate_adjacency_matrix
+from create_graph import create_multidigraph
+from utils import graph_to_multidigraph
 
 def create_graph(input_file):
     G = nx.Graph()
@@ -74,7 +77,10 @@ def calculate_paths(G, origin, destination, algorithm, draw=False, pos=None,
     elif algorithm == "oddcycle":
         result = oddcycle(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     elif algorithm == "splitpath":
-            result = splitpath(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+        result = splitpath(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+    elif algorithm == "splitpathmd":
+        Q = graph_to_multidigraph(G)
+        result = splitpathmd(Q, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     else:
         result = None
     return result
