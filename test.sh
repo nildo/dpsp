@@ -25,7 +25,7 @@ rm *.png
 # python main.py -i inputs/digraph_weighted_20_57_1 -a ilp-splitpath
 # python main.py -i inputs/digraph_weighted_30_130_1 -a ilp-splitpath
 # python main.py -i topology -a ilp-splitpath -o outputs/testbed-evaluation.csv
-python main.py -i topology -a splitpath-splitpathmg-splitpathdi-splitpathgr -o outputs/testbed-heuristic-eval-definitive.csv
+# python main.py -i topology -a splitpath-splitpathmg-splitpathdi-splitpathgr -o outputs/testbed-heuristic-eval-definitive.csv
 # python main.py -i topology -a ilp-ilpmg-ilpdi-ilpgr -o outputs/model-evaluation-all-2.csv
 
-# python main.py -i inputs/dissertation_example -p inputs/dissertation_example_pos -o outputs/dissertation_example.csv -a ilpmd-splitpathmd -t 0-0-13 -d -v
+python main.py -i inputs/dissertation_example -p inputs/dissertation_example_pos -o outputs/dissertation_example.csv -a ilpmd-splitpathmd -t 0-0-13 -d -v

@@ -166,9 +166,9 @@ def create_multidigraph_from_topology(input_file):
     links2 = get_links(log, 2)
     Q = nx.MultiDiGraph()
     for edge, weight in links1.iteritems():
-        Q.add_edge(edge[0], edge[1], 1, weight=weight)
+        Q.add_edge(edge[0], edge[1], 0, weight=weight)
     for edge, weight in links2.iteritems():
-        Q.add_edge(edge[0], edge[1], 2, weight=weight)
+        Q.add_edge(edge[0], edge[1], 1, weight=weight)
     return Q
 
 

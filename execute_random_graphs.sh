@@ -6,7 +6,7 @@
 
 for if in inputs/digraph_weighted_*_1;
 do
-  of=${if/inputs/outputs}_new.csv
+  of=${if/inputs/outputs}.csv
   if [ ! -f "$of" ];
   then
     echo "Executing with -i $if -o $of"

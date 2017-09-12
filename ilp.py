@@ -52,11 +52,11 @@ def ilp_draw_graph(G, pos, filename=None, paths=False, current=None, parity=None
     # nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
     if paths:
         path_edges_0 = list((u,v) for u,v in G.edges_iter()
-                        if (v, 1) in G.node[u]["next"])
+                        if (v, 0) in G.node[u]["next"])
         nx.draw_networkx_edges(G, pos, edgelist=path_edges_0, edge_color="#000099", width=4)
         # nx.draw_networkx_edges(G, pos, edgelist=path_edges_0, edge_color="#6666ff", width=4)
         path_edges_1 = list((u,v) for u,v in G.edges_iter()
-                        if (v, 2) in G.node[u]["next"])
+                        if (v, 1) in G.node[u]["next"])
         # nx.draw_networkx_edges(G, pos, edgelist=path_edges_1, edge_color="#000099", width=4)
         nx.draw_networkx_edges(G, pos, edgelist=path_edges_1, edge_color="#6666ff", width=4)
     if current:
@@ -85,16 +85,16 @@ def create_data_file(G, origin, destination, file_name):
     added_edges = []
     for u,v,k,d in G.edges_iter(keys=True, data=True):
         if (u,v,k) not in added_edges:
-            if k == 1:
+            if k == 0:
                 w1 = d["weight"]
-                w2 = G.edge[u][v][2]["weight"] if G.has_edge(u,v,2) else 10000
-            if k == 2:
-                w1 = G.edge[u][v][1]["weight"] if G.has_edge(u,v,1) else 10000
+                w2 = G.edge[u][v][1]["weight"] if G.has_edge(u,v,1) else 10000
+            if k == 1:
+                w1 = G.edge[u][v][0]["weight"] if G.has_edge(u,v,0) else 10000
                 w2 = d["weight"]
             output.write(str(u) + "," + str(v) + " ")
             output.write(str(w1) + " " + str(w2) + "\n")
+            added_edges.append((u,v,0))
             added_edges.append((u,v,1))
-            added_edges.append((u,v,2))
     output.write(";\nend;")
     output.close()
 
@@ -123,7 +123,7 @@ def parse_ilp_output(G, source, destination, file_name):
     value = float(value)
     edges = re.findall(r"x(\d)\[(\d+),(\d+)\] *\* *1", text)
     for e in edges:
-        radio = int(e[0])
+        radio = int(e[0])-1
         u = int(e[1])
         v = int(e[2])
         G.node[u]["type"] = "occupied"

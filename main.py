@@ -15,6 +15,7 @@ from yuster import yuster
 from twofast import twofast
 from oddcycle import oddcycle
 from splitpath import splitpath
+from splitpathmd import splitpathmd
 from create_data_file import generate_adjacency_matrix
 from create_data_file import create_multidigraph_from_topology
 from utils import *
@@ -82,9 +83,9 @@ def calculate_paths(G, origin, destination, algorithm, draw=False, pos=None,
             paths = splitpath(G2, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
         elif "md" in algorithm:
             G2 = gr_to_md(G)
-            paths = splitpath(G2, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+            paths = splitpathmd(G2, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
         else:
-            paths = splitpath(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
+            paths = splitpathmd(G, origin, destination, 2, draw=draw, pos=pos, debug=debug, steps=steps)
     else:
         paths = None
     result = {}
@@ -179,13 +180,15 @@ def main():
                 results = []
                 for alg in algorithms:
                     copyG = G.copy()
+                    print alg,
                     result = calculate_paths(copyG, origin, destination, alg, draw=args.draw, pos=pos, debug=args.debug, steps=args.steps)
+                    print result["weight"],
                     results.append(result)
                 weight = results[0]["weight"]
                 for result in results:
                     if result["weight"] != weight:
-                        print "Different results found on instance ", instance, origin, destination
-                        print results
+                        print "DIFFERENT!",
+                print ""
                 if args.output_file is not None:
                     args.output_file.write(str(instance) + "," + str(origin) + "," + str(destination))
                     for result in results:

@@ -124,9 +124,9 @@ def create_digraph_from_adjacency_matrix(input_file):
 def create_multidigraph_from_digraphs(D1, D2):
     M = nx.MultiDiGraph()
     for u,v,d in D1.edges_iter(data=True):
-        M.add_edge(u,v,1,d)
+        M.add_edge(u,v,0,d)
     for u,v,d in D2.edges_iter(data=True):
-        M.add_edge(u,v,2,d)
+        M.add_edge(u,v,1,d)
     return M
 
 def create_multidigraph_from_adjacency_matrix(input_file):
@@ -193,7 +193,7 @@ def ncr(n, r):
 def md_to_di(Q):
     D = nx.MultiDiGraph()
     for u,v,k,d in Q.edges_iter(keys=True, data=True):
-        kb = 1 if k == 2 else 2
+        kb = 0 if k == 1 else 1
         if Q.has_edge(u,v,kb):
             if d["weight"] > Q.edge[u][v][kb]["weight"]:
                 D.add_edge(u,v,k,d)
@@ -219,7 +219,7 @@ def md_to_gr(Q):
     G = nx.MultiDiGraph()
     D = md_to_di(Q)
     for u,v,k,d in D.edges_iter(keys=True, data=True):
-        kb = 1 if k == 2 else 2
+        kb = 0 if k == 1 else 1
         if D.has_edge(v,u,k):
             if d["weight"] > D.edge[v][u][k]["weight"]:
                 G.add_edge(u,v,k,d)
@@ -236,8 +236,8 @@ def md_to_gr(Q):
 def gr_to_md(G):
     Q = nx.MultiDiGraph()
     for u,v,d in G.edges_iter(data=True):
+        Q.add_edge(u,v,0,d)
+        Q.add_edge(v,u,0,d)
         Q.add_edge(u,v,1,d)
         Q.add_edge(v,u,1,d)
-        Q.add_edge(u,v,2,d)
-        Q.add_edge(v,u,2,d)
     return Q

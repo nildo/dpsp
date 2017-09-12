@@ -67,7 +67,8 @@ def main():
         print i
         v = 100
         p = i
-        total = ncr(v, 2)
+        # total = ncr(v, 2) # For undirected graphs
+        total = v * (v-1)
         e = total * p/100
         generate_random_multidigraph(1, v, e)
 
